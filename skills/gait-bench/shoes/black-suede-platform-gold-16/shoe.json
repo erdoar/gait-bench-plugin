@@ -1,0 +1,14 @@
+{
+  "id": "black-suede-platform-gold-16",
+  "name": "Black suede platform pump, 16 cm gold metal stiletto",
+  "category": "pump",
+  "side": "right",
+  "side_toe": "left",
+  "heel_cm": 16,
+  "platform_cm": 5,
+  "top_from_below": true,
+  "heel_clear": false,
+  "licence": "reference photos supplied by the user for personal reference; the photos are not redistributed",
+  "credit": "maker's dimension drawing (16 cm heel, 5 cm platform), white-background side view, straight-on sole view",
+  "notes": "Scale from the maker's 16 cm heel. Shoe side assumed right (the outline is near-symmetric). Measure the real pair's length and width with a tape to replace the derived values."
+}

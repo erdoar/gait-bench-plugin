@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style id="gb-style">
+:root { --bg: #f4f3ef; --panel: #ffffff; --ink: #1c1e21; --muted: #646870; --line: #dad8d1; --accent: #2f6fd6; --stage: #0f1012; --chip: #eceae4; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #141619; --panel: #1d2024; --ink: #e8e6e1; --muted: #9ea2a9; --line: #33373d; --accent: #7aa7f0; --stage: #0a0b0c; --chip: #262a2f; } }
+:root[data-theme="dark"] { --bg: #141619; --panel: #1d2024; --ink: #e8e6e1; --muted: #9ea2a9; --line: #33373d; --accent: #7aa7f0; --stage: #0a0b0c; --chip: #262a2f; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1100px; margin: 0 auto; padding: 12px 16px 24px; }
+header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+h1 { font-size: 16px; margin: 0; }
+.sub { color: var(--muted); font-size: 12px; }
+#slot { min-height: 40px; }
+.stage { background: var(--stage); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+.stage.full { border-radius: 0; height: 100vh; width: 100vw; }
+.panes { display: flex; justify-content: center; align-items: center; gap: 6px; padding: 6px; height: min(46vh, 440px); }
+.stage.full .panes { flex: 1; height: auto; min-height: 0; }
+.cell { position: relative; flex: 0 0 auto; height: 100%; display: flex; align-items: center; justify-content: center; }
+.cell[hidden] { display: none; }
+.frame { position: relative; background: #000; border-radius: 6px; overflow: hidden; }
+.frame video, .frame canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.frame canvas { cursor: default; touch-action: none; }
+.frame canvas.orbit { cursor: grab; }
+.tag { position: absolute; left: 6px; top: 6px; font-size: 11px; color: #fff; background: rgba(0,0,0,.55); padding: 1px 7px; border-radius: 9px; pointer-events: none; z-index: 2; }
+.drop { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: #c9ccd1; font-size: 12px; text-align: center; padding: 12px; border: 1px dashed #4a4f57; border-radius: 6px; z-index: 1; }
+.drop.over { border-color: var(--accent); color: #fff; }
+.empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 14px; text-align: center; color: #c9ccd1; font-size: 12px; background: #000; z-index: 1; }
+.empty[hidden] { display: none; }
+.empty button { background: #2a2d33; color: #fff; border-color: #4a4f57; }
+.drop[hidden], video[hidden] { display: none; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 8px; background: var(--panel); border-top: 1px solid var(--line); }
+.bar input[type=range] { flex: 1 1 140px; min-width: 100px; accent-color: var(--accent); }
+button, select { font: inherit; font-size: 13px; color: var(--ink); background: var(--chip); border: 1px solid var(--line); border-radius: 7px; padding: 4px 9px; cursor: pointer; }
+button:hover, select:hover { border-color: var(--accent); }
+button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+#clock { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 9ch; font-size: 12px; }
+.op { display: none; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); }
+.op.show { display: inline-flex; }
+.op input { width: 80px; }
+.away { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 10px; color: var(--muted); }
+.note { color: var(--muted); font-size: 12px; margin: 6px 2px 0; }
+.ver { color: var(--muted); font-size: 11px; margin: 14px 2px 0; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.ver button { font-size: 11px; padding: 0; border: 0; background: none; color: var(--accent); text-decoration: underline; cursor: pointer; }
+.ver a { color: var(--accent); }
+.note.warn { color: #c0392b; }
+details { margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+.ev { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 8px; font-size: 11px; font-weight: 500; text-transform: none; background: var(--chip, #e8eaee); color: var(--muted); }
+.ev.c-weak, .ev.c-unknown { background: #fbe3cf; color: #8a4510; } .ev.c-strong { background: #d6ecd9; color: #1f5a2a; }
+dl { margin: 4px 0 0; } dt { font-weight: 600; margin-top: 8px; text-transform: capitalize; font-size: 13px; } dd { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.err { color: #c0392b; }
+.capture { margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; }
+.capture h2 { font-size: 13px; margin: 0; }
+.capture p { margin: 0; color: var(--muted); font-size: 13px; max-width: 68ch; }
+.studio { margin: 0 0 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 10px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.actions button { font-size: 14px; padding: 7px 14px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button:disabled { opacity: .5; cursor: default; }
+.progress { display: grid; gap: 6px; }
+.ptop { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 13px; }
+.ptop #pAge { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.pbar { position: relative; height: 6px; background: var(--chip); border-radius: 3px; overflow: hidden; }
+.pbar i { position: relative; display: block; height: 100%; width: 0; background: var(--accent); transition: width .6s ease; overflow: hidden; }
+.pbar.fail i { background: #c0392b; }
+/* while Claude works: a light sweeps along the filled part, so the bar never looks frozen between steps */
+.pbar.busy i::after { content: ""; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); animation: sweep 1.4s linear infinite; }
+@keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.steps li { display: inline-flex; align-items: center; gap: 6px; }
+/* the phase dots: hollow to come, filled when done (with a pop as each completes), pulsing on the one in progress */
+.steps li::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; box-sizing: border-box; border: 1.5px solid var(--line); background: transparent; }
+.steps li.done { color: var(--ink); } .steps li.done::before { border-color: var(--accent); background: var(--accent); }
+.steps li.pop::before { animation: pop .5s ease-out; }
+.steps li.now { color: var(--accent); font-weight: 600; } .steps li.now::before { border-color: var(--accent); background: var(--accent); animation: pulse 1.1s ease-in-out infinite; }
+.steps li.now.wait::before { background: transparent; animation: breathe 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); } 50% { transform: scale(1.35); box-shadow: 0 0 0 5px transparent; } }
+@keyframes breathe { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+@keyframes pop { 0% { transform: scale(.4); } 60% { transform: scale(1.6); } 100% { transform: scale(1); } }
+.can { margin: 0; font-size: 12px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .cap summary::before { transition: none; } .pbar i { transition: none; } .pbar.busy i::after, .steps li::before { animation: none !important; } }
+.queue { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+.queue li { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.pill { font-size: 11px; padding: 1px 8px; border-radius: 9px; background: var(--chip); border: 1px solid var(--line); color: var(--muted); }
+.files { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.files li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 6px 0; border-top: 1px solid var(--line); }
+.files li:first-child { border-top: 0; }
+.files .what { flex: 1 1 220px; min-width: 0; }
+.files .ico { flex: none; width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; color: var(--accent); background: var(--chip); }
+.files .ico svg { width: 20px; height: 20px; }
+.files video { flex: 1 1 100%; width: 100%; max-height: 40vh; background: #000; border-radius: 8px; }
+#history { display: grid; gap: 6px; margin-top: 4px; }
+.hh { font-size: 12px; font-weight: 600; color: var(--muted); margin: 6px 0 0; text-transform: uppercase; letter-spacing: .04em; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+.hh button { text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 400; padding: 1px 8px; }
+.hh .linkish { margin-left: auto; }
+#delAsk { text-transform: none; letter-spacing: 0; font-weight: 400; color: #c0392b; display: inline-flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+#delAsk[hidden] { display: none; }
+.cap { border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; }
+.cap summary { list-style: none; display: flex; align-items: center; gap: 8px; padding: 8px 0; font-weight: 600; font-size: 13px; cursor: pointer; }
+.cap summary::-webkit-details-marker { display: none; }
+.cap summary::before { content: ""; flex: none; width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform .2s ease; margin: 0 4px 0 2px; }
+.cap[open] summary::before { transform: rotate(45deg); }
+.cap summary .when { margin-left: auto; font-weight: 400; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.cap .files { padding-bottom: 8px; }
+.cap .showcap { margin: 0 0 6px; }
+.files .what b { display: block; font-size: 13px; }
+.files .what span { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+#resultVid { width: 100%; max-height: 50vh; background: #000; border-radius: 8px; }
+.example { color: var(--accent); font-weight: 600; }
+.pill.done { color: var(--accent); border-color: var(--accent); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+@media (max-width: 560px) { .panes { height: 52vh; } .bar { gap: 4px; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="h1">__TITLE__</h1>
+    <span class="sub" id="sub">A scene reasoned from the video, with a plausible figure acting it out. Nothing is measured.</span>
+  </header>
+  <section class="studio" id="studioBar" aria-label="Capture" hidden>
+    <div class="actions">
+      <button type="button" class="primary" id="capBtn">Capture a clip…</button>
+      <button type="button" id="stopBtn" title="Full stop: halt playback and rendering, and empty both panels">■ Stop</button>
+      <button type="button" id="resetBtn">Reset</button>
+    </div>
+    <div class="progress" role="status" aria-live="polite">
+      <div class="ptop"><span id="pLabel">Ready. Press Capture, or drop a walking clip on the Original panel.</span><span id="pAge"></span></div>
+      <div class="pbar" aria-hidden="true"><i id="pFill"></i></div>
+      <ol class="steps" id="pSteps"></ol>
+    </div>
+    <p class="can" id="capNote" hidden></p>
+    <p class="can" id="canLine">Checking what this panel can do here…</p>
+  </section>
+  <div id="slot">
+    <div class="stage" id="stage">
+      <div class="panes">
+        <div class="cell" id="cellIn">
+          <div class="frame" id="frameIn">
+            <span class="tag">Original</span>
+            <video id="vid" muted playsinline preload="auto"></video>
+            <label class="drop" id="drop">
+              <span id="dropText">Drop the original clip here, or click to choose it</span>
+              <input type="file" id="file" accept="video/*" hidden>
+            </label>
+          </div>
+        </div>
+        <div class="cell" id="cellOut">
+          <div class="frame" id="frameOut">
+            <span class="tag" id="tagOut">Reconstruction</span>
+            <video id="vidUnder" muted playsinline preload="auto" hidden></video>
+            <canvas id="cv" aria-label="The reconstructed scene"></canvas>
+            <div class="empty" id="empty" hidden>
+              <span id="emptyText">No reconstruction shown</span>
+              <button type="button" id="showBtn">Show it</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bar">
+        <button id="play" aria-label="Play or pause">⏸</button>
+        <button id="stopBar" aria-label="Stop and clear" title="Full stop: halt playback and rendering, and empty both panels">■</button>
+        <input id="time" type="range" min="0" max="1" step="0.0005" value="0" aria-label="Time">
+        <span id="clock">0.00 s</span>
+        <select id="layout" aria-label="Layout">
+          <option value="both">Side by side</option>
+          <option value="overlay">Overlay</option>
+          <option value="render">Reconstruction</option>
+          <option value="original">Original</option>
+        </select>
+        <span class="op" id="opWrap">mix <input id="op" type="range" min="0" max="1" step="0.01" value="0.5" aria-label="Overlay mix"></span>
+        <select id="look" aria-label="Look" title="Scene as reasoned; Clay in neutral greys; Contact marks planted (blue) and sliding (orange) soles"><option value="scene">Scene</option><option value="clay">Clay</option><option value="contact">Contact</option></select>
+        <span class="op show" title="Cap: the walk as reasoned from the clip. Sim: the ice-walk physics shortens the steps on slippery ground and adds the skids the ground could not prevent">cap <input id="mix" type="range" min="0" max="1" step="0.25" value="0" aria-label="Cap to sim mix"> sim</span>
+        <select id="view" aria-label="Camera"><option value="camera">Video camera</option><option value="orbit">Orbit</option></select>
+        <select id="rate" aria-label="Speed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option></select>
+        <button id="clip" aria-label="Choose another clip" title="Drop or choose the original clip (C)">Clip…</button>
+        <button id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⛶</button>
+        <button id="pop" aria-label="Pop out to its own window" title="Pop out to its own window (P)">⧉ Pop out</button>
+      </div>
+    </div>
+  </div>
+  <p class="note" id="note">Space plays or pauses, ← → step a frame, P pops out, F fills the screen. In Orbit, drag to turn and scroll to zoom.</p>
+  <section class="capture" id="results" aria-labelledby="resH">
+    <h2 id="resH">Results</h2>
+    <ul class="files" id="files"></ul>
+    <video id="resultVid" controls playsinline preload="metadata" hidden></video>
+    <div id="history" hidden>
+      <h3 class="hh">Earlier captures <button type="button" id="delAll" class="linkish">Delete all</button> <span id="delAsk" hidden>Delete every earlier capture for good? <button type="button" id="delYes">Delete all</button> <button type="button" id="delNo">Cancel</button></span></h3>
+      <div id="histList"></div>
+    </div>
+    <p id="saveNote" hidden></p>
+  </section>
+  <details id="whyBox">
+    <summary>How the scene was reasoned</summary>
+    <dl id="why"></dl>
+  </details>
+  <p class="ver" id="ver">Gait Bench <span id="verNum"></span> · <button type="button" id="verCheck">Check for updates</button> <span id="verMsg" role="status"></span></p>
+</main>
+<script type="text/plain" id="gb-core">
+/*MODULES*/
+
+/** The scene, the figure, the camera and the renderer, as one object. Runs in a worker or on the page. */
+function gbEngine(raw) {
+  const { normaliseScene, cameraTrack, makeCamera } = M_scene, { animate } = M_walker, { makeRenderer } = M_draw;
+  const { scene, problems } = normaliseScene(raw);
+  if (problems.length) return { problems };
+  const motion = animate(scene), cams = cameraTrack(scene, motion.frames), R = makeRenderer(scene, motion.dims);
+  const N = motion.frames.length, fps = scene.output.fps, D2R = Math.PI / 180;
+  const why = {}, evidence = {};
+  for (const k of M_scene.SECTIONS) {
+    const sec = scene[k];
+    if (sec?.why) why[k] = sec.why;
+    if (sec && (sec.confidence || sec.basis)) evidence[k] = { confidence: sec.confidence ?? null, basis: sec.basis ?? null };
+  }
+  function render({ t, view, orbit, w, h }) {
+    const i = Math.max(0, Math.min(N - 1, Math.round(t * fps))), c = cams[i];
+    let cam;
+    if (view === 'orbit') {
+      const p = motion.frames[i].nodes.waist, ce = Math.cos(orbit.el * D2R);
+      const eye = [p[0] - Math.sin(orbit.az * D2R) * ce * orbit.dist, p[1] + Math.sin(orbit.el * D2R) * orbit.dist, p[2] - Math.cos(orbit.az * D2R) * ce * orbit.dist];
+      const hf = h > w ? 2 * Math.atan(Math.tan(20 * D2R) * w / h) / D2R : 40;
+      cam = makeCamera({ eye, yaw: orbit.az, pitch: orbit.el, roll: 0, hfovDeg: hf, width: w, height: h });
+    } else cam = makeCamera({ eye: c.eye, yaw: c.yaw, pitch: c.pitch, roll: c.roll, hfovDeg: scene.camera.hfov_deg, width: w, height: h });
+    const buf = new Uint8ClampedArray(w * h * 4);
+    R.render(motion.frames[i], cam, buf);
+    return { buf, i, yaw: c.yaw };
+  }
+  return { info: { id: scene.id, N, fps, dur: (N - 1) / fps, width: scene.output.width, height: scene.output.height, why, evidence, alternatives: scene.alternatives, look: scene.look, mix: scene.activity.mix ?? 0 }, render };
+}
+</script>
+<script>
+const RAW = /*SCENE*/null;
+const VIDEO = /*VIDEO*/null;
+const CAPTURE = /*CAPTURE*/false;
+const STUDIO = /*STUDIO*/null;
+const GB_VERSION = /*GBVERSION*/'dev';
+// the page's own source, kept before anything changes it: a pop-out that can't borrow this page's panels opens a copy
+const SELF = `<!doctype html>\n${document.documentElement.outerHTML}`;
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const HASH = new URLSearchParams(location.hash.slice(1)), AS_WINDOW = HASH.has('full'), stage = $('stage');
+  const core = $('gb-core').textContent;
+  // the stage's elements, kept by reference: after a pop-out they live in the other window's document
+  const E = Object.fromEntries(["play", "time", "clock", "layout", "op", "opWrap", "view", "rate", "fs", "pop", "cellIn", "cellOut", "frameIn", "frameOut", "tagOut", "drop", "file", "clip", "look", "mix"].map((id) => [id, $(id)]));
+  const note = (msg, warn) => { $('note').textContent = msg; $('note').className = warn ? 'note warn' : 'note'; };
+
+  // ---------- the engine: in a worker when the page may start one, else on the page ----------
+  let engine = null, worker = null, info = null, pending = null, inFlight = false, gbEngineFactory = null;
+  const GLUE = `
+let E = null;
+onmessage = (e) => {
+  const m = e.data;
+  if (m.type === 'init') { E = gbEngine(m.raw); postMessage({ type: 'ready', info: E.info, problems: E.problems }); return; }
+  const t0 = performance.now(), r = E.render(m);
+  postMessage({ type: 'frame', id: m.id, w: m.w, h: m.h, buf: r.buf.buffer, yaw: r.yaw, ms: performance.now() - t0 }, [r.buf.buffer]);
+};`;
+  let current = { raw: RAW, original: null }; // what the reconstruction panel shows, once it shows anything
+  function startPageEngine(raw = current.raw) {
+    gbEngineFactory ??= new Function(`${core}\nreturn gbEngine;`)();
+    engine = gbEngineFactory(raw);
+    if (engine.problems) return fail(engine.problems);
+    ready(engine.info);
+  }
+  function fail(problems) { const p = document.createElement('p'); p.className = 'err'; p.textContent = problems.join('; '); $('why').append(p); $('whyBox').open = true; }
+  // the worker can be thrown away and made again (Stop does that when a long job jams it)
+  let gen = 0;
+  function makeWorker() {
+    try {
+      const w = new Worker(URL.createObjectURL(new Blob([core, GLUE], { type: 'text/javascript' }))), mine = ++gen;
+      w.onmessage = (e) => {
+        if (mine !== gen) return; // a stopped worker's last words
+        const m = e.data;
+        if (m.type === 'ready') { if (m.problems) return fail(m.problems); ready(m.info); return; }
+        show(m);
+      };
+      w.onerror = () => { if (mine !== gen) return; worker = null; if (!info && current.loading) startPageEngine(); };
+      worker = w;
+    } catch { worker = null; }
+  }
+  makeWorker();
+  // the studio opens with an empty reconstruction panel (and returns to it on Reset); a plain result page shows its scene
+  function loadScene(raw, original, keepT = null) {
+    current = { raw, original, loading: true, keepT };
+    info = null; inFlight = false; pending = null; $('why').replaceChildren(); $('empty').hidden = true;
+    if (STUDIO) $('h1').textContent = STUDIO.example && raw === RAW ? 'Example: a walk in a park' : nice(raw.id);
+    let r = lookPick ? { ...raw, look: lookPick } : raw; // a look chosen on the page wins over the scene's own
+    if (mixPick != null && raw.activity) r = { ...r, activity: { ...raw.activity, mix: mixPick } }; // and so does the cap/sim mix
+    if (worker) worker.postMessage({ type: 'init', raw: r }); else startPageEngine(r);
+  }
+  let lookPick = null, mixPick = null, startAt = null; // startAt: where a scene opens (a popped-out copy carries on there)
+
+  // ---------- state ----------
+  const st = { t: 0, playing: true, rate: 1, layout: 'both', view: 'camera', orbit: { az: 0, el: 10, dist: 4.5 }, op: 0.5, lastYaw: 0 };
+  let win = window, popWin = null, last = performance.now(), dirty = true, idleAt = 0, sharpDone = false, msPerMpx = 120, seq = 0;
+  const vid = $('vid'), under = $('vidUnder'), cv = $('cv'), ctx = cv.getContext('2d');
+  let hasVideo = false;
+  if (STUDIO) E.clip.hidden = true; // the studio has one way in: its Capture button (or a drop on the Original panel)
+  const DEF_ASPECT = (() => { const o = RAW.output ?? RAW.source ?? {}; return o.width && o.height ? o.width / o.height : 16 / 9; })();
+  const nice = (id) => String(id ?? 'scene').replace(/[-_]+/g, ' ').replace(/^./, (c) => c.toUpperCase());
+  function showEmpty() {
+    info = null; current = { raw: RAW, original: STUDIO?.original ?? null };
+    inFlight = false; pending = null; $('why').replaceChildren();
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    E.clock.textContent = '0.00 s'; E.time.value = '0';
+    $('emptyText').textContent = STUDIO?.example ? 'Empty. Press Capture to start with your own clip.' : 'The reconstruction appears here. Press Capture for a new clip, or show the last one.';
+    $('showBtn').textContent = `Show ${nice(RAW.id)}`; $('showBtn').hidden = !!STUDIO?.example; // a fresh install has nothing to show
+    $('h1').textContent = 'Gait Bench Studio';
+    $('empty').hidden = false; layout();
+  }
+  const NOTE0 = $('note').textContent;
+  $('showBtn').onclick = () => { note(NOTE0); if (!st.playing) setPlaying(true); loadScene(RAW, STUDIO?.original ?? null); };
+
+  let ticking = false;
+  function ready(i) {
+    info = i; current.loading = false; st.t = Math.min(i.dur, current.keepT ?? startAt ?? 0); startAt = null; dirty = true;
+    E.look.value = i.look ?? 'scene';
+    E.mix.value = String(i.mix ?? 0);
+    // each section: what Claude reasoned, how sure it is and on what it rests (seen, inferred or assumed)
+    for (const k of new Set([...Object.keys(i.why), ...Object.keys(i.evidence ?? {})])) {
+      const dt = document.createElement('dt'), dd = document.createElement('dd'), e = i.evidence?.[k];
+      dt.textContent = k;
+      if (e) { const c = document.createElement('span'); c.className = `ev c-${e.confidence ?? 'none'}`; c.textContent = [e.confidence, e.basis].filter(Boolean).join(' · '); c.title = 'How sure Claude is, and whether it was seen, inferred or assumed'; dt.append(c); }
+      dd.textContent = i.why[k] ?? ''; $('why').append(dt, dd);
+    }
+    if (i.alternatives?.length) {
+      const dt = document.createElement('dt'), dd = document.createElement('dd'), ul = document.createElement('ul');
+      dt.textContent = 'Other readings';
+      for (const a of i.alternatives) { const li = document.createElement('li'); li.textContent = `${a.about}: ${a.instead}${a.because ? ` (${a.because})` : ''}`; ul.append(li); }
+      dd.append(ul); $('why').append(dt, dd);
+    }
+    // the original clip: inside the page (a plain result page), or the one sent to the studio's private storage
+    if (current.keepT != null) seekVideo(); // only the look changed: the clip carries on where it was
+    else if (VIDEO && !clipUrl) setVideo(VIDEO);
+    // (a popped-out copy lives at a blob: address, where the studio's /_blob/ paths lead nowhere: it is sent the clip)
+    else if (current.original && /^\/_blob\/[0-9a-f]{32}$/.test(current.original) && !clipFile && !AS_WINDOW) setVideo(current.original);
+    layout();
+    if (!ticking) { ticking = true; win.requestAnimationFrame(tick); }
+  }
+
+  // ---------- the original video ----------
+  // A stored clip (/_blob/…) is streamed first. Where the browser can't stream it from storage (Safari wants byte
+  // ranges, for one), it is fetched whole, as Download does, and played from memory.
+  let fetchedUrl = null;
+  function setVideo(src, fetched = false) {
+    if (!fetched && fetchedUrl) { URL.revokeObjectURL(fetchedUrl); fetchedUrl = null; }
+    for (const v of [vid, under]) { v.src = src; v.load(); }
+    vid.addEventListener('loadedmetadata', () => { if (vid.getAttribute('src') !== src) return; hasVideo = true; E.drop.hidden = true; seekVideo(); if (st.playing) playVideo(); layout(); }, { once: true });
+    vid.addEventListener('error', async () => {
+      if (vid.getAttribute('src') !== src) return; // an older clip's error, after another took its place
+      if (!fetched && /^\/_blob\/[0-9a-f]{32}$/.test(src)) {
+        note('Fetching the original clip…');
+        try {
+          const r = await fetch(src); if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const b = await r.blob();
+          if (vid.getAttribute('src') !== src) return;
+          fetchedUrl = URL.createObjectURL(b.type.startsWith('video/') ? b : new Blob([b], { type: 'video/mp4' })); setVideo(fetchedUrl, true); note(NOTE0); return;
+        } catch {}
+      }
+      note('That video could not be played here. The reconstruction still works.', true);
+    }, { once: true });
+  }
+  const seekVideo = () => { if (!hasVideo) return; for (const v of [vid, under]) if (Math.abs(v.currentTime - st.t) > 0.03) v.currentTime = st.t; };
+  const playVideo = () => { if (!hasVideo) return; for (const v of [vid, under]) { v.playbackRate = st.rate; v.play().catch(() => {}); } };
+  const pauseVideo = () => { for (const v of [vid, under]) v.pause(); };
+  // one clip area, used again and again: the Original panel, the Clip button and the Clip section all take a video
+  let clipFile = null, clipUrl = null, wantCapture = false;
+  function useFile(f) {
+    if (!f) return;
+    if (f.type && !f.type.startsWith('video/')) { note(`${f.name} is not a video.`, true); return; }
+    if (clipUrl) URL.revokeObjectURL(clipUrl);
+    clipFile = f; clipUrl = URL.createObjectURL(f); hasVideo = false;
+    setVideo(clipUrl);
+    showState();
+    if (wantCapture) { wantCapture = false; startCapture(); }
+  }
+  const pickFile = (e) => { e?.preventDefault(); E.file.value = ''; E.file.click(); };
+  E.clip.onclick = pickFile;
+  E.drop.addEventListener('click', () => { E.file.value = ''; }); // the Original panel itself opens the chooser
+  E.file.onchange = (e) => useFile(e.target.files?.[0]);
+  for (const zone of [E.drop, E.frameIn]) {
+    zone.addEventListener('dragover', (e) => { e.preventDefault(); (zone === E.frameIn ? E.drop : zone).classList.add('over'); if (zone === E.frameIn) E.drop.hidden = false; });
+    zone.addEventListener('dragleave', (e) => { if (zone.contains(e.relatedTarget)) return; (zone === E.frameIn ? E.drop : zone).classList.remove('over'); if (zone === E.frameIn && hasVideo) E.drop.hidden = true; });
+    zone.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); zone.classList.remove('over'); E.drop.classList.remove('over'); if (hasVideo) E.drop.hidden = true; useFile(e.dataTransfer.files?.[0]); });
+  }
+
+  // ---------- the studio: capture, progress, download, reset ----------
+  // Capture uploads the clip to this panel's private storage (only on that press) and queues it; Claude reports each
+  // step in the shared doc studio/state, which every open view follows; Claude then republishes the panel with the
+  // result. Without storage (another host, a file on disk) the clip still plays here, and the panel says what it can't do.
+  const MAX_SEND = 20 * 1048576;
+  const STEPS = [['sent', 'Clip received'], ['look', 'Looking at the frames'], ['reason', 'Reasoning the scene'], ['check', 'Checking the framing'], ['render', 'Rendering'], ['done', 'Done']];
+  let shownDone = null; // which dots were already filled, so only newly finished steps pop (none on first paint)
+  let sentFile = null; // the clip last sent: once sent, the panel follows Claude's progress on it
+  let cap = null, can = { db: false, assets: false, downloads: false }, state = { status: 'idle' };
+  const capNote = (msg) => { const n = $('capNote'); n.textContent = msg; n.hidden = !msg; };
+  const ago = (ms) => { const s2 = Math.max(0, Math.round((Date.now() - ms) / 1000)); return s2 < 60 ? `${s2} s ago` : s2 < 3600 ? `${Math.round(s2 / 60)} min ago` : `${Math.round(s2 / 3600)} h ago`; };
+  function showState() {
+    if (!STUDIO) return;
+    const st0 = state ?? { status: 'idle' }, fresh = clipFile && clipFile !== sentFile, st2 = fresh && !['queued', 'working'].includes(st0.status) ? { ...st0, status: 'idle', step: null } : st0, idx = STEPS.findIndex(([k]) => k === st2.step), ol = $('pSteps');
+    const active = st2.status === 'working' || st2.status === 'queued';
+    const doneNow = STEPS.map((_, i) => st2.status === 'done' || i < idx);
+    ol.replaceChildren(...STEPS.map(([k, label], i) => {
+      const li = document.createElement('li'); li.textContent = label;
+      if (doneNow[i]) li.className = `done${!shownDone || shownDone[i] ? '' : ' pop'}`;
+      else if (i === idx && active) li.className = st2.status === 'queued' ? 'now wait' : 'now';
+      if (li.classList.contains('now')) li.setAttribute('aria-current', 'step');
+      return li;
+    }));
+    shownDone = doneNow;
+    $('pFill').parentElement.classList.toggle('busy', st2.status === 'working');
+    const pct = st2.status === 'done' ? 100 : st2.status === 'idle' || st2.status === 'cancelled' ? 0 : Math.round(((Math.max(0, idx) + 0.5) / STEPS.length) * 100);
+    $('pFill').style.width = `${pct}%`; $('pFill').parentElement.classList.toggle('fail', st2.status === 'failed');
+    const clip = st2.clip ? ` ${st2.clip}:` : '';
+    $('pLabel').textContent = {
+      idle: 'Ready. Press Capture to choose a walking clip, or drop one on the Original panel.',
+      loaded: `${clipFile?.name} is playing here, on this device only. Press Capture to send it to Claude.`,
+      queued: `Sent${clip ? ` (${st2.clip})` : ''}. Now say "capture" in the chat, and Claude starts.`,
+      working: `Working on${clip} ${STEPS[Math.max(0, idx)]?.[1]?.toLowerCase() ?? 'it'}${st2.note ? `. ${st2.note}` : ''}…`,
+      done: `Done${clip ? ` (${st2.clip})` : ''}. Press Show on the reconstruction panel to play it beside the original; save files under Results.`,
+      failed: `Could not capture${clip ? ` ${st2.clip}` : ''}${st2.note ? `: ${st2.note}` : ''}. Press Reset to try another clip.`,
+      cancelled: 'Cancelled. Press Capture to send another clip.',
+    }[fresh && st2.status === 'idle' ? 'loaded' : st2.status] ?? st2.status;
+    $('pAge').textContent = st2.at && st2.status !== 'idle' ? `updated ${ago(st2.at)}` : '';
+    $('capBtn').disabled = st2.status === 'queued' || st2.status === 'working';
+  }
+  setInterval(() => { if (state?.at) $('pAge').textContent = state.status !== 'idle' ? `updated ${ago(state.at)}` : ''; }, 5000);
+  function showCan() {
+    const yes = (b, what) => `${what} ${b ? '✓' : '✗'}`;
+    $('canLine').textContent = `In this view: playback ✓ · ${yes(can.downloads || !window.claude, 'download')} · ${yes(can.assets && can.db, 'send clips')} · ${yes(can.db, 'live progress')}` +
+      (can.db && can.assets ? '' : '. Where a ✗ shows, attach the clip in the chat instead and Claude works from there.');
+  }
+  async function startCapture() {
+    if (!clipFile) { wantCapture = true; pickFile(); return; }
+    if (!(cap?.assets && cap?.db)) { capNote('This view cannot send clips to Claude. Attach the same clip in the chat and say "capture"; it is playing here meanwhile.'); return; }
+    if (clipFile.size > MAX_SEND) { capNote('This clip is over 20 MB, too big to send from here. Trim it, or attach it in the chat.'); return; }
+    $('capBtn').disabled = true; $('pLabel').textContent = `Uploading ${clipFile.name}…`; $('pFill').style.width = '4%';
+    try {
+      const up = await cap.assets.upload(clipFile);
+      const id = `c${Date.now().toString(36)}`, at = Date.now();
+      await cap.db.doc(`captures/${id}`).set({ asset: up.id, name: clipFile.name, size: up.sizeBytes, status: 'queued', at });
+      sentFile = clipFile; state = { status: 'queued', step: 'sent', clip: clipFile.name, capture: id, at };
+      await cap.db.doc('studio/state').set(state);
+      capNote('');
+    } catch (err) { capNote(`The clip was not sent (${err?.code ?? err?.message ?? 'error'}). Attach it in the chat instead.`); }
+    showState();
+  }
+  function resetLocalClip() {
+    if (clipUrl) URL.revokeObjectURL(clipUrl);
+    clipFile = null; clipUrl = null; hasVideo = false;
+    for (const v of [vid, under]) { v.pause(); v.removeAttribute('src'); v.load(); }
+    E.drop.hidden = false;
+  }
+  async function resetStudio() {
+    if (clipUrl) URL.revokeObjectURL(clipUrl);
+    clipFile = null; clipUrl = null; sentFile = null; hasVideo = false; wantCapture = false;
+    for (const v of [vid, under]) { v.pause(); v.removeAttribute('src'); v.load(); }
+    E.drop.hidden = false; capNote(''); saveNote('');
+    st.t = 0; dirty = true; if (STUDIO) showEmpty(); else layout();
+    if (cap?.db && state.status !== 'working') {
+      try {
+        if (state.status === 'queued' && state.capture) await cap.db.doc(`captures/${state.capture}`).update({ status: 'cancelled' });
+        state = { status: 'idle', at: Date.now() }; await cap.db.doc('studio/state').set(state);
+      } catch {}
+    } else if (state.status === 'working') capNote('Claude is still working on the last clip; the panel will update when it is done.');
+    showState();
+  }
+  async function captureInit() {
+    if (STUDIO) { $('studioBar').hidden = false; showState(); }
+    if (window.claude?.use) {
+      const [db, assets, downloads] = await Promise.all(['db', 'assets', 'downloads'].map((n) => window.claude.use(n)));
+      can = { db: !!db, assets: !!assets, downloads: !!downloads };
+      if (CAPTURE && db) {
+        cap = { db, assets };
+        db.doc('studio/state').onSnapshot((snap) => { state = snap.data() ?? { status: 'idle' }; showState(); }, () => {});
+        if (STUDIO) db.collection('history').orderBy('at', 'desc').limit(30).onSnapshot((snap) => showHistory(snap.docs.map((d) => ({ id: d.id, ...d.data() }))), () => {});
+      }
+    }
+    if (STUDIO) showCan();
+  }
+  /**
+   * Stop: a full stop that empties both panels. The worker is thrown away mid-job (a long render or a heavy scene can
+   * jam it) and a fresh one made; playback stops; the original clip is unloaded and the reconstruction blanked. A
+   * capture Claude is working on is left alone (Reset is for that).
+   */
+  function fullStop() {
+    if (worker) { worker.terminate(); worker = null; makeWorker(); } else gen++;
+    engine = null; info = null; inFlight = false; pending = null; current = { raw: RAW, original: null };
+    setPlaying(false);
+    if (clipUrl) URL.revokeObjectURL(clipUrl);
+    clipFile = null; clipUrl = null; hasVideo = false; wantCapture = false;
+    for (const v of [vid, under]) { v.pause(); v.removeAttribute('src'); v.load(); }
+    E.drop.hidden = false;
+    ctx.clearRect(0, 0, cv.width, cv.height); $('why').replaceChildren();
+    E.clock.textContent = '0.00 s'; E.time.value = '0'; st.t = 0;
+    $('emptyText').textContent = 'Stopped. Both panels are empty.';
+    $('showBtn').textContent = `Show ${nice(RAW.id)}`; $('showBtn').hidden = !!STUDIO?.example;
+    if (STUDIO) $('h1').textContent = 'Gait Bench Studio';
+    $('empty').hidden = false; note('Stopped: playback and rendering halted, both panels cleared.'); layout();
+  }
+  $('stopBtn').onclick = () => fullStop();
+  $('stopBar').onclick = () => fullStop();
+  $('capBtn').onclick = () => startCapture();
+  $('resetBtn').onclick = () => resetStudio();
+  captureInit();
+  if (AS_WINDOW) asWindow(); else if (STUDIO) showEmpty(); else loadScene(RAW, STUDIO?.original ?? null);
+  if (!ticking) { ticking = true; win.requestAnimationFrame(tick); }
+
+  // ---------- results: preview and save ----------
+  const sceneId = RAW.id ?? 'scene';
+  const saveNote = (msg) => { const n = $('saveNote'); n.textContent = msg; n.hidden = !msg; };
+  async function saveFile(filename, make) {
+    try {
+      const data = await make();
+      const dl = window.claude?.use ? await window.claude.use('downloads') : null;
+      if (dl) {
+        try { await dl.save({ filename, data }); saveNote(`Saved ${filename}.`); }
+        catch (e) { if (e?.code !== 'declined') saveNote(e?.code === 'too_large' ? `${filename} is too large to save here.` : `${filename} could not be saved here (${e?.code ?? 'error'}).`); }
+        return;
+      }
+      if (window.claude) { saveNote('Saving is not available in this view. Ask Claude for the file in chat.'); return; }
+      const a = document.createElement('a'), blob = data instanceof Blob ? data : new Blob([data]);
+      a.href = URL.createObjectURL(blob); a.download = filename; document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    } catch (err) { saveNote(`${filename} could not be prepared (${err?.message ?? 'error'}).`); }
+  }
+  // icons for what each result is: the scene (a 3D cube), the result page (a player window), the video (film)
+  const ICON = {
+    scene: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.8 20.5 7.5v9L12 21.2 3.5 16.5v-9z"/><path d="M3.5 7.5 12 12.2l8.5-4.7M12 12.2v9"/></svg>',
+    page: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="2.8" y="4" width="18.4" height="16" rx="2.2"/><path d="M2.8 8.2h18.4"/><circle cx="5.6" cy="6.1" r=".5" fill="currentColor"/><circle cx="7.6" cy="6.1" r=".5" fill="currentColor"/><path d="m10.2 11.2 4.6 2.8-4.6 2.8z" fill="currentColor"/></svg>',
+    clip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="13.5" height="12" rx="2"/><path d="m16 10.5 5.5-3.2v9.4L16 13.5z"/></svg>',
+    video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3.5" width="18" height="17" rx="2"/><path d="M7 3.5v17M17 3.5v17M3 8h4M3 12h4M3 16h4M17 8h4M17 12h4M17 16h4"/></svg>',
+  };
+  function fileRow(kind, what, detail, filename, make, extra) {
+    const li = document.createElement('li'), ic = document.createElement('span'), w = document.createElement('div'), b = document.createElement('b'), d = document.createElement('span'), btn = document.createElement('button');
+    ic.className = 'ico'; ic.innerHTML = ICON[kind];
+    w.className = 'what'; b.textContent = what; d.textContent = detail; w.append(b, d);
+    btn.type = 'button'; btn.textContent = 'Save'; btn.setAttribute('aria-label', `Save ${filename}`); btn.onclick = () => saveFile(filename, make);
+    li.append(ic, w, btn); if (extra) li.append(extra);
+    return li;
+  }
+  const fetchBlob = (url) => async () => { const r = await fetch(url); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.blob(); };
+  const files = [
+    ['scene', 'Scene', `${sceneId}.json: what Claude reasoned out, to edit or render again`, `${sceneId}.json`, () => JSON.stringify(RAW, null, 2)],
+    ['page', 'Result page', `${sceneId}.html: this player as a file that works offline`, `${sceneId}.html`, () => SELF],
+  ];
+  if (STUDIO?.video) {
+    files.push(['video', 'Rendered video', `${sceneId}.mp4: the rendered video`, `${sceneId}.mp4`, fetchBlob(STUDIO.video)]);
+    const rv = $('resultVid'); rv.src = STUDIO.video; rv.hidden = false;
+  }
+  if (STUDIO?.original && /^\/_blob\/[0-9a-f]{32}$/.test(STUDIO.original)) files.push(['clip', 'Original clip', `the clip this was captured from${STUDIO.clip ? `: ${STUDIO.clip}` : ''}`, String(STUDIO.clip ?? `${sceneId}-original.mp4`).replace(/[^\w.() -]/g, '_').replace(/^(?!.*\.(mp4|mov|webm|m4v)$)(.*)$/i, '$2.mp4'), fetchBlob(STUDIO.original)]);
+  // a freshly installed studio (no capture yet) starts empty: no example to show, nothing under Results
+  if (STUDIO?.example) { $('files').hidden = true; const p = document.createElement('p'); p.id = 'noResults'; p.textContent = 'Nothing yet. Press Capture to start with your own clip.'; $('files').after(p); }
+  else for (const [kind, what, detail, filename, make] of files) $('files').append(fileRow(kind, what, detail, filename, make));
+
+  // earlier captures, kept in the shared history collection: each one folds open to its own scene and video
+  function showHistory(rows) {
+    const list = $('histList'), earlier = rows.filter((r) => r.id !== STUDIO?.capture);
+    const open = new Set([...list.querySelectorAll('details[open]')].map((d) => d.dataset.id));
+    list.replaceChildren(...earlier.map((r) => {
+      const det = document.createElement('details'), sum = document.createElement('summary'), name = document.createElement('span'), when = document.createElement('span'), ul = document.createElement('ul');
+      det.className = 'cap'; det.dataset.id = r.id; det.open = open.has(r.id);
+      name.textContent = r.name ?? r.id; when.className = 'when'; when.textContent = r.at ? new Date(r.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '';
+      sum.append(name, when); ul.className = 'files';
+      const base = String(r.scene_id ?? r.id);
+      if (typeof r.scene === 'string') ul.append(fileRow('scene', 'Scene', `${base}.json${r.clip ? `, from ${r.clip}` : ''}`, `${base}.json`, () => { try { return JSON.stringify(JSON.parse(r.scene), null, 2); } catch { return r.scene; } }));
+      if (typeof r.original === 'string' && /^\/_blob\/[0-9a-f]{32}$/.test(r.original)) {
+        const v = document.createElement('video'); v.controls = true; v.playsInline = true; v.preload = 'none';
+        det.addEventListener('toggle', () => { if (det.open && !v.src) v.src = r.original; });
+        ul.append(fileRow('clip', 'Original clip', r.clip ? String(r.clip) : 'the clip it was captured from', `${base}-original.mp4`, fetchBlob(r.original), v));
+      }
+      if (typeof r.video === 'string' && /^[\w./-]+\.(mp4|webm)$/.test(r.video) && !r.video.includes('..')) {
+        const v = document.createElement('video'); v.controls = true; v.playsInline = true; v.preload = 'none';
+        det.addEventListener('toggle', () => { if (det.open && !v.src) v.src = r.video; });
+        ul.append(fileRow('video', 'Rendered video', `${base}.mp4`, `${base}.mp4`, fetchBlob(r.video), v));
+      }
+      let raw2 = null; try { raw2 = typeof r.scene === 'string' ? JSON.parse(r.scene) : null; } catch {}
+      if (raw2) { const b = document.createElement('button'); b.type = 'button'; b.className = 'showcap'; b.textContent = 'Show in player'; b.onclick = () => { if (clipFile) resetLocalClip(); loadScene(raw2, r.original ?? null); stage.scrollIntoView({ behavior: 'smooth', block: 'start' }); }; det.append(sum, b, ul); }
+      else det.append(sum, ul);
+      return det;
+    }));
+    $('history').hidden = !earlier.length;
+    histRows = earlier;
+  }
+  // Delete all: every earlier capture's history entry, and its original clip in the studio's storage, after a confirm.
+  // The capture on show stays; rendered videos published with the page are removed when Claude next republishes it.
+  let histRows = [];
+  const delAsk = (on) => { $('delAsk').hidden = !on; $('delAll').hidden = on; };
+  $('delAll').onclick = () => delAsk(true);
+  $('delNo').onclick = () => delAsk(false);
+  $('delYes').onclick = async () => {
+    delAsk(false);
+    if (!cap?.db) { saveNote('Deleting needs the studio\'s storage, which this view does not have.'); return; }
+    const rows = histRows.slice(); let gone = 0, failed = 0;
+    for (const r of rows) {
+      try {
+        await cap.db.doc(`history/${r.id}`).delete(); gone++;
+        const m = /^\/_blob\/([0-9a-f]{32})$/.exec(String(r.original ?? ''));
+        if (m && cap.assets?.delete && r.original !== STUDIO?.original) { try { await cap.assets.delete(m[1]); } catch {} }
+      } catch { failed++; }
+    }
+    showHistory([]);
+    saveNote(failed ? `Deleted ${gone} earlier capture${gone === 1 ? '' : 's'}; ${failed} could not be deleted from this view.` : `Deleted ${gone} earlier capture${gone === 1 ? '' : 's'}.`);
+  };
+
+  // ---------- layout: fit each panel to the clip's shape, in whatever window the stage is in ----------
+  function fit(cell, frame, aw, ah) {
+    const a = info ? info.width / info.height : DEF_ASPECT;
+    let w = aw, h = aw / a;
+    if (h > ah) { h = ah; w = ah * a; }
+    w = Math.max(40, Math.floor(w)); h = Math.max(40, Math.floor(h));
+    frame.style.width = `${w}px`; frame.style.height = `${h}px`; cell.style.width = `${w}px`;
+  }
+  function layout() {
+    const L = st.layout;
+    E.cellIn.hidden = !(L === 'both' || L === 'original');
+    E.cellOut.hidden = L === 'original';
+    under.hidden = L !== 'overlay' || !hasVideo;
+    cv.style.opacity = L === 'overlay' && hasVideo ? String(1 - st.op) : '1';
+    E.opWrap.classList.toggle('show', L === 'overlay');
+    E.tagOut.textContent = L === 'overlay' ? 'Overlay' : 'Reconstruction';
+    // panels sit side by side as a group, each as large as the clip's shape allows
+    const shown = [[E.cellIn, E.frameIn], [E.cellOut, E.frameOut]].filter(([c]) => !c.hidden), panes = E.cellOut.parentElement;
+    const aw = (panes.clientWidth - 12 - 6 * (shown.length - 1)) / shown.length, ah = panes.clientHeight - 12;
+    for (const [c, f] of shown) fit(c, f, aw, ah);
+    cv.classList.toggle('orbit', st.view === 'orbit');
+    dirty = true; sharpDone = false;
+  }
+
+  // ---------- rendering: lighter while playing, full detail once still ----------
+  function wantSize(sharp) {
+    const f = E.frameOut, dpr = win.devicePixelRatio || 1;
+    let w = Math.max(64, f.clientWidth * dpr), h = Math.max(64, f.clientHeight * dpr);
+    if (sharp) { const k = Math.min(1.5, 2400 / Math.max(w, h)); w *= k; h *= k; }
+    else { const budget = Math.max(150000, 55 / msPerMpx * 1e6), k = Math.min(1, Math.sqrt(budget / (w * h))); w *= k; h *= k; }
+    return [Math.max(32, Math.round(w)), Math.max(32, Math.round(h))];
+  }
+  function request(sharp) {
+    if (!info || E.cellOut.hidden) return;
+    const [w, h] = wantSize(sharp), msg = { type: 'frame', id: ++seq, t: st.t, view: st.view, orbit: { ...st.orbit }, w, h, sharp };
+    if (inFlight) { pending = msg; return; }
+    send(msg);
+  }
+  function send(msg) {
+    inFlight = true;
+    if (worker) { worker.postMessage(msg); return; }
+    const t0 = performance.now(), r = engine.render(msg);
+    // let the page breathe between frames when there is no worker
+    setTimeout(() => show({ ...msg, buf: r.buf.buffer, yaw: r.yaw, ms: performance.now() - t0 }), 0);
+  }
+  function show(m) {
+    inFlight = false;
+    if (!info) return; // a frame that arrives after the panel was emptied
+    // learn the render speed from frames big enough that fixed costs don't dominate
+    if (!m.sharp && m.w * m.h > 120000) msPerMpx = Math.max(15, Math.min(3000, 0.7 * msPerMpx + 0.3 * (m.ms / ((m.w * m.h) / 1e6))));
+    if (cv.width !== m.w || cv.height !== m.h) { cv.width = m.w; cv.height = m.h; }
+    ctx.putImageData(new ImageData(new Uint8ClampedArray(m.buf), m.w, m.h), 0, 0);
+    st.lastYaw = m.yaw;
+    if (pending) { const p = pending; pending = null; send(p); }
+  }
+
+  // ---------- the clock: the original video leads when it is there ----------
+  function tick(now) {
+    const dt = Math.max(0, Math.min(0.25, (now - last) / 1000)); last = now;
+    if (info && st.playing) {
+      if (hasVideo && !vid.paused) st.t = vid.currentTime; else st.t += dt * st.rate;
+      if (st.t >= info.dur) { st.t = 0; seekVideo(); if (hasVideo) playVideo(); }
+      dirty = true;
+    }
+    if (info) {
+      E.time.value = String(info.dur ? st.t / info.dur : 0);
+      E.clock.textContent = `${st.t.toFixed(2)} / ${info.dur.toFixed(2)} s`;
+      if (dirty) { request(false); dirty = false; idleAt = now; sharpDone = false; }
+      else if (!st.playing && !sharpDone && now - idleAt > 180 && !inFlight) { request(true); sharpDone = true; }
+    }
+    win.requestAnimationFrame(tick);
+  }
+  function setPlaying(p) {
+    st.playing = p; E.play.textContent = p ? '⏸' : '▶';
+    if (p) { seekVideo(); playVideo(); } else pauseVideo();
+    dirty = true;
+  }
+  const step = (k) => { setPlaying(false); st.t = Math.max(0, Math.min(info.dur, st.t + k / info.fps)); seekVideo(); dirty = true; };
+  E.play.onclick = () => setPlaying(!st.playing);
+  E.time.oninput = (e) => { st.t = Number(e.target.value) * info.dur; seekVideo(); dirty = true; };
+  E.layout.onchange = (e) => { st.layout = e.target.value; if (st.layout === 'overlay' && st.view !== 'camera') { st.view = 'camera'; E.view.value = 'camera'; } if (st.layout === 'overlay' && !hasVideo) note('Overlay needs the original video: drop it into the Original panel, or rebuild the page with it.', true); layout(); };
+  E.op.oninput = (e) => { st.op = Number(e.target.value); layout(); };
+  E.view.onchange = (e) => { st.view = e.target.value; if (st.view === 'orbit') { st.orbit.az = st.lastYaw; if (st.layout === 'overlay') { st.layout = 'both'; E.layout.value = 'both'; } } layout(); };
+  E.look.onchange = (e) => { lookPick = e.target.value; if (info || current.loading) loadScene(current.raw, current.original, st.t); };
+  E.mix.onchange = (e) => { mixPick = Number(e.target.value); if (info || current.loading) loadScene(current.raw, current.original, st.t); };
+  E.rate.onchange = (e) => { st.rate = Number(e.target.value); if (st.playing) playVideo(); };
+
+  // ---------- orbit ----------
+  let drag = null;
+  cv.addEventListener('pointerdown', (e) => { if (st.view !== 'orbit') return; drag = { x: e.clientX, y: e.clientY }; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    st.orbit.az += (e.clientX - drag.x) * 0.4; st.orbit.el = Math.max(-5, Math.min(75, st.orbit.el + (e.clientY - drag.y) * 0.3));
+    drag = { x: e.clientX, y: e.clientY }; dirty = true;
+  });
+  cv.addEventListener('pointerup', () => { drag = null; });
+  cv.addEventListener('wheel', (e) => { if (st.view !== 'orbit') return; e.preventDefault(); st.orbit.dist = Math.max(1.2, Math.min(30, st.orbit.dist * Math.exp(e.deltaY * 0.001))); dirty = true; }, { passive: false });
+
+  // ---------- tear off: move the whole stage into its own window, and back ----------
+  function onKey(e) {
+    if (e.target.tagName === 'INPUT' && e.target.type !== 'range') return;
+    if (e.key === ' ') { e.preventDefault(); setPlaying(!st.playing); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+    else if (e.key === 'p' || e.key === 'P') popOut();
+    else if (e.key === 'f' || e.key === 'F') fullscreen();
+    else if (e.key === 'c' || e.key === 'C') pickFile();
+  }
+  function moveStage(toWin, parent) {
+    const was = st.playing;
+    parent.appendChild(toWin.document.adoptNode(stage));
+    win = toWin;
+    if (was && hasVideo) { seekVideo(); playVideo(); }
+    win.requestAnimationFrame(() => layout());
+  }
+  function popOut() {
+    if (popWin && !popWin.closed) { popWin.focus(); return; }
+    const a = info ? info.width / info.height : DEF_ASPECT, h = Math.min(screen.availHeight - 80, 900), w = Math.min(screen.availWidth - 40, Math.round(((h - 50) * a) * 2 + 40));
+    const pw = window.open('', 'gaitbench-stage', `popup=yes,width=${w},height=${h},resizable=yes`);
+    if (!pw) { note('Pop-out is blocked in this view. Save this page and open it in a browser to tear it off to another screen, or use ⛶ to fill this one.', true); return; }
+    popWin = pw;
+    // a sandboxed view (an app's file preview) opens the window but won't let this page reach into it: load a copy instead
+    try { void pw.document.body; } catch { popCopy(pw); return; }
+    pw.document.open();
+    pw.document.write(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${document.title}</title></head><body style="margin:0;overflow:hidden"></body></html>`);
+    pw.document.close();
+    pw.document.head.append(pw.document.importNode($('gb-style'), true));
+    const theme = document.documentElement.getAttribute('data-theme'); if (theme) pw.document.documentElement.setAttribute('data-theme', theme);
+    stage.classList.add('full');
+    moveStage(pw, pw.document.body);
+    $('slot').innerHTML = '';
+    const away = document.createElement('div'); away.className = 'away';
+    away.innerHTML = '<span>Playing in its own window.</span>';
+    const back = document.createElement('button'); back.textContent = 'Bring it back'; back.onclick = () => pw.close();
+    away.append(back); $('slot').append(away);
+    E.pop.textContent = '⧉ Focus window';
+    pw.addEventListener('resize', layout);
+    pw.addEventListener('keydown', onKey);
+    pw.addEventListener('pagehide', bringBack);
+    pw.document.addEventListener('fullscreenchange', onFs);
+  }
+  // The copy starts as this page did when it loaded, so it is sent what this one shows now: the scene, the time, the
+  // look and mix, and the original clip itself (a clip picked on this device, or the studio's stored one, which the copy
+  // can't reach from its blob: address). It is posted until the copy says it has it.
+  function popCopy(pw) {
+    try {
+      const url = URL.createObjectURL(new Blob([SELF], { type: 'text/html;charset=utf-8' })), nonce = Math.random().toString(36).slice(2), was = st.playing;
+      pw.location.href = `${url}#full=1&pop=${nonce}&t=${st.t.toFixed(3)}`;
+      setPlaying(false);
+      note('Opened in its own window as a copy of this page: drag it to another screen and resize it. This one is paused.');
+      handOver(pw, nonce, was);
+    } catch {
+      try { pw.close(); } catch {}
+      note('Pop-out is blocked in this view. Save this page and open it in a browser to tear it off to another screen, or use ⛶ to fill this one.', true);
+    }
+    popWin = null;
+  }
+  async function handOver(pw, nonce, was) {
+    const msg = { type: 'gb-pop', nonce, raw: info || current.loading ? current.raw : null, t: st.t, playing: was, look: lookPick, mix: mixPick, video: clipFile ?? null };
+    if (!msg.video && !VIDEO && hasVideo && /^\/_blob\/[0-9a-f]{32}$/.test(current.original ?? '')) { try { msg.video = await fetchBlob(current.original)(); } catch {} }
+    let tries = 0;
+    const iv = setInterval(() => { if (++tries > 80 || pw.closed) return done(); try { pw.postMessage(msg, '*'); } catch {} }, 250);
+    const onAck = (e) => { if (e.data?.type === 'gb-pop-ack' && e.data.nonce === nonce) done(); };
+    const done = () => { clearInterval(iv); window.removeEventListener('message', onAck); };
+    window.addEventListener('message', onAck);
+  }
+  // the copy's side: the stage alone fills the window, and waits for what the page it came from was showing
+  function asWindow() {
+    stage.classList.add('full'); E.pop.hidden = true;
+    const rest = document.createElement('div'); rest.hidden = true; rest.append(...document.body.childNodes); document.body.replaceChildren(stage, rest); // the rest stays, hidden, so the page's code still finds it
+    document.body.style.margin = '0'; document.body.style.overflow = 'hidden';
+    const t0 = Math.max(0, Number(HASH.get('t')) || 0), nonce = HASH.get('pop');
+    if (!nonce) { startAt = t0; loadScene(RAW, STUDIO?.original ?? null); return; }
+    let got = false;
+    $('showBtn').hidden = true; $('emptyText').textContent = 'Bringing the clip and the reconstruction over…'; $('empty').hidden = false;
+    window.addEventListener('message', (e) => {
+      const m = e.data;
+      if (m?.type !== 'gb-pop' || m.nonce !== nonce) return;
+      try { e.source?.postMessage({ type: 'gb-pop-ack', nonce }, '*'); } catch {}
+      if (got) return;
+      got = true; lookPick = m.look ?? null; mixPick = m.mix ?? null; st.playing = !!m.playing; E.play.textContent = st.playing ? '⏸' : '▶';
+      if (m.video instanceof Blob) { clipFile = m.video; clipUrl = URL.createObjectURL(m.video); setVideo(clipUrl); }
+      st.t = Math.max(0, Number(m.t) || 0);
+      if (m.raw) { startAt = st.t; loadScene(m.raw, null); }
+      else { $('emptyText').textContent = m.video ? 'The reconstruction appears in the studio once Claude has it.' : 'The studio\'s panels are empty.'; layout(); }
+    });
+    // nothing came (an old page, or the window was cut off from this one): show what the page was built with
+    setTimeout(() => { if (!got) { startAt = t0; loadScene(RAW, null); } }, 6000);
+  }
+  function bringBack() {
+    if (win === window) return;
+    stage.classList.remove('full');
+    $('slot').innerHTML = '';
+    moveStage(window, $('slot'));
+    popWin = null; E.pop.textContent = '⧉ Pop out';
+  }
+  function fullscreen() {
+    const d = win.document;
+    if (d.fullscreenElement) { d.exitFullscreen(); return; }
+    if (!stage.requestFullscreen) { note('Fullscreen is not available in this view.', true); return; }
+    stage.requestFullscreen().catch(() => note('Fullscreen is blocked in this view. Save this page and open it in a browser.', true));
+  }
+  const onFs = () => { stage.classList.toggle('full', !!win.document.fullscreenElement || win !== window); layout(); };
+  document.addEventListener('fullscreenchange', onFs);
+  E.pop.onclick = popOut;
+  E.fs.onclick = fullscreen;
+  window.addEventListener('keydown', onKey);
+  window.addEventListener('resize', () => { if (win === window) layout(); });
+  window.addEventListener('pagehide', () => { if (popWin && !popWin.closed) popWin.close(); });
+  // ---------- the version, and a check against the one published on the site ----------
+  const SITE = 'https://gait.nulytica.com';
+  const newer = (a, b) => { const p = (v) => String(v).split('.').map((x) => parseInt(x, 10) || 0); const [x, y] = [p(a), p(b)]; for (let k = 0; k < 3; k++) if ((x[k] ?? 0) !== (y[k] ?? 0)) return (x[k] ?? 0) > (y[k] ?? 0); return false; };
+  $('verNum').textContent = GB_VERSION;
+  $('verCheck').onclick = async () => {
+    const msg = $('verMsg'), say = (text, link) => { msg.replaceChildren(text); if (link) { const a = document.createElement('a'); a.href = SITE; a.target = '_blank'; a.rel = 'noopener'; a.textContent = link; msg.append(' ', a); } };
+    say('Checking…');
+    try {
+      // the public release repo on GitHub first (updated with every release), then the site
+      let latest = null;
+      for (const url of ['https://raw.githubusercontent.com/erdoar/gait-bench-plugin/main/.claude-plugin/marketplace.json', `${SITE}/marketplace.json`]) {
+        try { const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 8000); const r = await fetch(url, { cache: 'no-store', signal: ctl.signal }); clearTimeout(timer); latest = (await r.json())?.plugins?.[0]?.version; if (latest) break; } catch {}
+      }
+      if (!latest) throw new Error('no version');
+      if (newer(latest, GB_VERSION)) say(`${latest} is out. In Claude Code run /plugin marketplace update, or download it from`, 'gait.nulytica.com');
+      else if (newer(GB_VERSION, latest)) say(`Up to date: this is newer than the published ${latest}.`);
+      else say('Up to date.');
+    } catch { say('Could not check from here.', 'See the latest version'); }
+  };
+})();
+</script>
+</body>
+</html>

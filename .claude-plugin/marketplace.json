@@ -1,0 +1,27 @@
+{
+  "name": "gait-bench",
+  "description": "Gait Bench: walking video to 3D stick-figure mocap, physics-checked, rendered for video models.",
+  "owner": {
+    "name": "Nulytica",
+    "url": "https://gait.nulytica.com"
+  },
+  "plugins": [
+    {
+      "name": "gait-bench",
+      "description": "Turn a walking video into 3D stick-figure motion capture (Gait Bench graybox), check it against physics, and render clay/stick/depth reference video for Seedance and other video models.",
+      "version": "1.8.0",
+      "author": {
+        "name": "Nulytica"
+      },
+      "homepage": "https://gait.nulytica.com",
+      "keywords": [
+        "motion-capture",
+        "mocap",
+        "gait",
+        "seedance",
+        "pose"
+      ],
+      "source": "./"
+    }
+  ]
+}

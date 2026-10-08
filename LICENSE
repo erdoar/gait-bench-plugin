@@ -1,0 +1,27 @@
+Gait Bench
+Copyright (c) 2025-2026 Nulytica. All rights reserved.
+
+Gait Bench is free to download and use, under these terms.
+
+1. You may install the plugin and use it, free of charge, for personal or
+   commercial work, including the scenes, pages and videos you make with it.
+   What you make with it is yours.
+
+2. You may not copy, modify, adapt, translate, decompile for the purpose of
+   reuse, redistribute, sublicense, sell, rent or publish the plugin or any
+   part of it (its code, prompts, skill instructions and reference files),
+   nor create derivative works from it, without written permission from
+   Nulytica. Get the plugin only from https://gait.nulytica.com.
+
+3. The shoe and foot models in skills/gait-bench/shoes/ are third-party works
+   under their own licences (CC0 and CC-BY, listed in
+   skills/gait-bench/shoes/CREDITS.md). Those licences, not these terms, apply
+   to them, and their credits must be kept.
+
+4. The plugin is provided "as is", without warranty of any kind. It produces
+   reasoned reconstructions, not measurements; do not rely on it for medical,
+   safety, legal or forensic purposes. Nulytica is not liable for any loss or
+   damage arising from its use.
+
+5. These terms end automatically if you break them. Contact:
+   https://gait.nulytica.com

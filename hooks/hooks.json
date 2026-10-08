@@ -1,0 +1,8 @@
+{
+  "description": "Gait Bench: a message about capture, mocap or gait opens the Gait Bench Studio panel first",
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/studio-trigger.mjs\"", "timeout": 5 }] }
+    ]
+  }
+}
