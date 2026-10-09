@@ -198,7 +198,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
     <summary>How the scene was reasoned</summary>
     <dl id="why"></dl>
   </details>
-  <p class="ver" id="ver">Gait Bench <span id="verNum"></span> · <button type="button" id="verCheck">Check for updates</button> <span id="verMsg" role="status"></span></p>
+  <p class="ver" id="ver">Gait Bench <span id="verNum"></span> · <button type="button" id="verCheck">Check for updates</button> · <a id="verLink" href="https://github.com/erdoar/gait-bench-plugin" target="_blank" rel="noopener">Releases</a> <span id="verMsg" role="status"></span></p>
 </main>
 <script type="text/plain" id="gb-core">
 /*MODULES*/
@@ -815,23 +815,23 @@ onmessage = (e) => {
   window.addEventListener('keydown', onKey);
   window.addEventListener('resize', () => { if (win === window) layout(); });
   window.addEventListener('pagehide', () => { if (popWin && !popWin.closed) popWin.close(); });
-  // ---------- the version, and a check against the one published on the site ----------
-  const SITE = 'https://gait.nulytica.com';
+  // ---------- the version, and a check against the one published in the release repo (then the site) ----------
+  const SITE = 'https://gait.nulytica.com', RELEASES = 'https://github.com/erdoar/gait-bench-plugin';
   const newer = (a, b) => { const p = (v) => String(v).split('.').map((x) => parseInt(x, 10) || 0); const [x, y] = [p(a), p(b)]; for (let k = 0; k < 3; k++) if ((x[k] ?? 0) !== (y[k] ?? 0)) return (x[k] ?? 0) > (y[k] ?? 0); return false; };
   $('verNum').textContent = GB_VERSION;
   $('verCheck').onclick = async () => {
-    const msg = $('verMsg'), say = (text, link) => { msg.replaceChildren(text); if (link) { const a = document.createElement('a'); a.href = SITE; a.target = '_blank'; a.rel = 'noopener'; a.textContent = link; msg.append(' ', a); } };
+    // every answer carries a link to the releases, so there is always somewhere to go from here
+    const msg = $('verMsg'), say = (text, link) => { msg.replaceChildren(text); if (link) { const a = document.createElement('a'); a.href = RELEASES; a.target = '_blank'; a.rel = 'noopener'; a.textContent = link; msg.append(' ', a); } };
     say('Checking…');
     try {
-      // the public release repo on GitHub first (updated with every release), then the site
       let latest = null;
       for (const url of ['https://raw.githubusercontent.com/erdoar/gait-bench-plugin/main/.claude-plugin/marketplace.json', `${SITE}/marketplace.json`]) {
         try { const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 8000); const r = await fetch(url, { cache: 'no-store', signal: ctl.signal }); clearTimeout(timer); latest = (await r.json())?.plugins?.[0]?.version; if (latest) break; } catch {}
       }
       if (!latest) throw new Error('no version');
-      if (newer(latest, GB_VERSION)) say(`${latest} is out. In Claude Code run /plugin marketplace update, or download it from`, 'gait.nulytica.com');
-      else if (newer(GB_VERSION, latest)) say(`Up to date: this is newer than the published ${latest}.`);
-      else say('Up to date.');
+      if (newer(latest, GB_VERSION)) say(`${latest} is out. In Claude Code run /plugin marketplace update, or get it from`, 'the releases');
+      else if (newer(GB_VERSION, latest)) say(`Up to date: this is newer than the published ${latest}.`, 'Releases');
+      else say(`Up to date (${latest}).`, 'Releases');
     } catch { say('Could not check from here.', 'See the latest version'); }
   };
 })();

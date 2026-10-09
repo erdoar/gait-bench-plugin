@@ -21,7 +21,7 @@ import { poseReport } from './lib/posefit.mjs';
 import { SHOE_SHAPES, shapeModel, shapeName } from './lib/shoeshapes.mjs';
 import { surfaceMu, frictionDemand, carefulGait } from './lib/physics.mjs';
 
-export const VERSION = '1.8.0';
+export const VERSION = '1.8.1';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const round = (x, k = 2) => Math.round(x * 10 ** k) / 10 ** k;
 const die = (msg) => { console.error(`gb: ${msg}`); process.exit(1); };
@@ -621,6 +621,7 @@ function cmdView(pos, opt) {
 }
 
 // where the latest version is published: the public release repo on GitHub first (updated with every release), then the site
+export const RELEASES = 'https://github.com/erdoar/gait-bench-plugin';
 export const LATEST = ['https://raw.githubusercontent.com/erdoar/gait-bench-plugin/main/.claude-plugin/marketplace.json', 'https://gait.nulytica.com/marketplace.json'];
 /** The plugin's version; --check compares it with the latest published one (the only network call, and only when asked). */
 async function cmdVersion(pos, opt) {
@@ -632,8 +633,8 @@ async function cmdVersion(pos, opt) {
     if (!latest) throw new Error(why);
     const p = (v) => String(v).split('.').map((x) => parseInt(x, 10) || 0), cmp = (a, b) => { const [x, y] = [p(a), p(b)]; for (let k = 0; k < 3; k++) if ((x[k] ?? 0) !== (y[k] ?? 0)) return (x[k] ?? 0) - (y[k] ?? 0); return 0; };
     const c = cmp(latest, VERSION);
-    console.log(c > 0 ? `${latest} is out: run /plugin marketplace update (or download it from https://gait.nulytica.com)` : c < 0 ? `up to date (newer than the published ${latest})` : 'up to date');
-  } catch (e) { console.log(`could not check: ${e.message}. The latest version is shown at https://gait.nulytica.com`); }
+    console.log(c > 0 ? `${latest} is out: run /plugin marketplace update (releases: ${RELEASES})` : c < 0 ? `up to date (newer than the published ${latest}; releases: ${RELEASES})` : `up to date (releases: ${RELEASES})`);
+  } catch (e) { console.log(`could not check: ${e.message}. The latest version is at ${RELEASES}`); }
 }
 
 function cmdShoes() {
