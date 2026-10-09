@@ -1,5 +1,7 @@
 # Gait Bench plugin
 
+**On hold (9 Oct 2026).** 2.0.1 is the last release for now. The owner's judgement: Claude can reason a scene out and pose a figure from it, but it doesn't yet produce convincing human movement, so the project waits for a new major version of the AI model before going further. The plugin stays installable and works as described.
+
 Rebuilds a video of a person as a simple 3D scene: the ground, sky and sun, the scenery around the horizon, a few props, and the camera with its movement, optionally as polygon-grid terrain with banks, kerbs and walls. A figure in it moves as the person did: walking, slipping, scrambling, falling or lying still. You set the camera in the studio and save a video from it, clay and contact references for video models, or the whole thing as an animated 3D file (`.glb`) for Blender or any glTF viewer.
 
 Claude does the reasoning. It looks at the frames and works out the lens, the camera's height and distance, the place and the person, and poses the person's body at the moments that matter, writing down why. It then compares its render with your clip, frame against frame, and corrects itself. Small Node scripts only draw what Claude wrote: no program decides how the person moves. Shoes are real 3D models fitted to a real human foot (47 ship with the plugin); no shape is invented. Nothing is measured from the pixels, and your clip is uploaded nowhere unless you press Capture in the studio panel.

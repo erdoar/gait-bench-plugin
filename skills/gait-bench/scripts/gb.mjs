@@ -16,7 +16,7 @@ import { makeRenderer, figureBox } from './lib/draw.mjs';
 import { prepareShoe } from './lib/shoemesh.mjs';
 import { exportGLB } from './lib/gltf.mjs';
 
-export const VERSION = '2.0.0';
+export const VERSION = '2.0.1';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const round = (x, k = 2) => Math.round(x * 10 ** k) / 10 ** k;
 const die = (msg) => { console.error(`gb: ${msg}`); process.exit(1); };
@@ -68,11 +68,20 @@ function uniqueFrames(video, p) {
 }
 
 function cmdLook(pos, opt) {
-  const video = pos[0] && resolve(pos[0]);
+  let video = pos[0] && resolve(pos[0]);
   if (!video) die('look needs a video');
-  const p = probe(video);
   const dir = resolve(opt.out ?? join(dirname(video), `${basename(video, extname(video))}-gb`));
   mkdirSync(dir, { recursive: true });
+  let p;
+  try { p = probe(video); } catch (e) {
+    // a clip recorded in a browser (the studio shrinks big clips that way) stores no duration: re-save it as it is, once
+    if (!/duration/.test(e.message)) throw e;
+    const fixed = join(dir, `${basename(video, extname(video))}.mkv`), { ffmpeg } = requireFfmpeg();
+    const r = spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-y', '-i', video, '-c', 'copy', '-an', fixed]);
+    if (r.status !== 0) die(`could not re-save ${basename(video)}: ${String(r.stderr).slice(0, 200)}`);
+    console.log(`(${basename(video)} stores no duration, as browser recordings don't: re-saved as ${fixed})`);
+    video = fixed; p = probe(video);
+  }
   const at = opt.at ? String(opt.at).split(',').map(Number).filter((x) => Number.isFinite(x) && x >= 0) : null;
   const n = at ? at.length : Number(opt.n ?? 8), files = [], times = [];
   for (let i = 0; i < n; i++) {
@@ -323,7 +332,7 @@ function cmdView(pos, opt) {
   writeFileSync(out, page);
   if (opt.studio) {
     const S = opt.studio;
-    console.log(`${out}\npublish it with the Artifact tool: capabilities {"db": {}, "assets": {}, "downloads": true}${S.video ? `, files {"${S.video}": "${resolve(opt.video)}"}` : ''}`);
+    console.log(`${out}\npublish it with the Artifact tool: capabilities {"db": {}, "assets": {}, "downloads": true, "comments": {}}${S.video ? `, files {"${S.video}": "${resolve(opt.video)}"}` : ''}`);
     return;
   }
   console.log(`${out}${video ? '  (the original clip is inside: keep the page private)' : ''}`);

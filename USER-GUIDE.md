@@ -1,5 +1,7 @@
 # Gait Bench: user guide
 
+> **Status:** on hold since 9 Oct 2026 while we wait for a new major version of the AI model. 2.0.1 keeps working as described here, but expect the figure's movement to be broadly similar to your clip rather than convincing.
+
 Gait Bench turns a short video of a person into a simple 3D scene with a figure moving as they did: walking, slipping, scrambling, falling. You get a video beside your original, a page you can play and orbit, and the scene file. Claude does the reasoning, posing the body from what it sees and checking its render against your clip; small scripts on your computer only draw it.
 
 ## 1. Install
@@ -20,8 +22,8 @@ To update later: `/plugin marketplace update` (each release is published on GitH
 
 1. Say **"capture"**, **"mocap"** or **"gait"**. Claude opens the **Gait Bench Studio** panel.
 2. Press **Capture a clip** (or drop a video on the Original panel) and choose your clip. It plays at once, on your device only.
-3. Press **Send to Claude ▸** (the same button, relabelled once a clip is chosen). The clip goes to the studio's private storage, nowhere else. A progress bar shows each step: clip received, looking at the frames, posing the figure, comparing with the clip, building the result, done.
-4. The result appears beside your original. Claude also writes a short summary in the chat: its main guesses, how sure it is of each, and what differs from your video.
+3. Press **Send to Claude ▸** (the same button, relabelled once a clip is chosen). The clip goes to the studio's private storage, nowhere else, and the studio sends Claude a comment so it starts by itself (the first time, allow the studio to post comments). If it can't, the button turns into **Tell Claude ▸**, or the progress line asks you to say "capture" in the chat. A progress bar shows each step: clip received, looking at the frames, posing the figure, comparing with the clip, building the result, done.
+4. The result appears beside your original, playing, whenever you open the studio. Claude also writes a short summary in the chat: its main guesses, how sure it is of each, and what differs from your video.
 
 You can also just attach a video in the chat and ask: "Recreate this in 3D".
 

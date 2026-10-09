@@ -384,6 +384,22 @@ onmessage = (e) => {
   let shownDone = null; // which dots were already filled, so only newly finished steps pop (none on first paint)
   let sentFile = null; // the clip last sent: once sent, the panel follows Claude's progress on it
   let cap = null, can = { db: false, assets: false, downloads: false }, state = { status: 'idle' };
+  let tellLabel = null; // set when the clip was sent but Claude couldn't be told from the Send press
+  /**
+   * Tell Claude a clip is waiting: a comment on the studio, sent to Claude, wakes the Claude session watching it (the
+   * one that published the studio). It needs the viewer's own press, and an editor of the studio. Returns '' when
+   * Claude was told, else why not.
+   */
+  async function tellClaude(anchor, id, name) {
+    const cm = cap?.comments;
+    if (!cm?.sendToClaude) return 'this view cannot message Claude';
+    try {
+      const ok = await cm.canSendToClaude();
+      if (ok !== 'available') return { no_session: 'no Claude session is watching the studio', writers_only: 'only editors of the studio can message Claude' }[ok] ?? 'messaging Claude is off here';
+      await cm.sendToClaude({ anchor: anchor ?? await cm.anchorFor($('capBtn')), text: `capture: ${name} was sent from the studio (captures/${id}). Please capture it.` });
+      return '';
+    } catch (err) { return String(err?.code ?? err?.message ?? err); }
+  }
   // a note about sending is shown in the progress line too, in red when something stopped it, so it can't be missed
   const capNote = (msg) => { const n = $('capNote'); n.textContent = msg; n.hidden = !msg; n.classList.toggle('warn', !!msg); if (msg) { $('pLabel').textContent = msg; $('pLabel').style.color = '#c0392b'; } else $('pLabel').style.color = ''; };
   const ago = (ms) => { const s2 = Math.max(0, Math.round((Date.now() - ms) / 1000)); return s2 < 60 ? `${s2} s ago` : s2 < 3600 ? `${Math.round(s2 / 60)} min ago` : `${Math.round(s2 / 3600)} h ago`; };
@@ -407,17 +423,19 @@ onmessage = (e) => {
     $('pLabel').textContent = {
       idle: 'Ready. Press Capture to choose a clip, or drop one on the Original panel.',
       loaded: `${clipFile?.name} is playing here, on this device only. Press Send to Claude to capture it.`,
-      queued: `Sent${clip ? ` (${st2.clip})` : ''}. Now say "capture" in the chat, and Claude starts.`,
+      queued: st2.told ? `Sent${clip ? ` (${st2.clip})` : ''}, and Claude has been told: it starts in a moment.` : `Sent${clip ? ` (${st2.clip})` : ''}. ${tellLabel ? 'Press Tell Claude ▸ so it starts.' : 'Now say "capture" in the chat, and Claude starts.'}`,
       working: `Working on${clip} ${STEPS[Math.max(0, idx)]?.[1]?.toLowerCase() ?? 'it'}${st2.note ? `. ${st2.note}` : ''}…`,
-      done: `Done${clip ? ` (${st2.clip})` : ''}. Press Show on the reconstruction panel to play it beside the original; save files under Results.`,
+      done: `Done${clip ? ` (${st2.clip})` : ''}. It plays beside the original; save files under Results.`,
       failed: `Could not capture${clip ? ` ${st2.clip}` : ''}${st2.note ? `: ${st2.note}` : ''}. Press Reset to try another clip.`,
       cancelled: 'Cancelled. Press Capture to send another clip.',
       stalled: `No progress${st2.clip ? ` on ${st2.clip}` : ''} for ${ago(st2.at).replace(' ago', '')}: the capture was left unfinished. Press Reset to clear it.`,
     }[fresh && st2.status === 'idle' ? 'loaded' : st2.status] ?? st2.status;
     $('pAge').textContent = st2.at && st2.status !== 'idle' ? `updated ${ago(st2.at)}` : '';
-    $('capBtn').disabled = st2.status === 'queued' || st2.status === 'working';
+    // a sent clip Claude wasn't told about yet: the one button tells it (a fresh press, which the platform needs)
+    const tell = !!tellLabel && st2.status === 'queued' && !st2.told;
+    $('capBtn').disabled = (st2.status === 'queued' && !tell) || st2.status === 'working';
     // once a clip is chosen and not yet sent, the one button sends it, and says so
-    $('capBtn').textContent = fresh && !active ? 'Send to Claude ▸' : 'Capture a clip…';
+    $('capBtn').textContent = tell ? tellLabel : fresh && !active ? 'Send to Claude ▸' : 'Capture a clip…';
   }
   // a capture with no progress for 10 minutes was abandoned (the chat ended mid-render): it no longer locks the studio
   const STALL_MS = 10 * 60 * 1000;
@@ -426,11 +444,14 @@ onmessage = (e) => {
   setInterval(() => { if (state?.at) $('pAge').textContent = state.status !== 'idle' ? `updated ${ago(state.at)}` : ''; }, 5000);
   function showCan() {
     const yes = (b, what) => `${what} ${b ? '✓' : '✗'}`;
-    $('canLine').textContent = `In this view: playback ✓ · ${yes(can.downloads || !window.claude, 'download')} · ${yes(can.assets && can.db, 'send clips')} · ${yes(can.db, 'live progress')}` +
+    $('canLine').textContent = `In this view: playback ✓ · ${yes(can.downloads || !window.claude, 'download')} · ${yes(can.assets && can.db, 'send clips')} · ${yes(can.db, 'live progress')} · ${yes(can.tell, 'tell Claude')}` +
       (can.db && can.assets ? '' : '. Where a ✗ shows, attach the clip in the chat instead and Claude works from there.');
   }
   async function startCapture() {
+    if (tellLabel && state?.status === 'queued' && !state.told) return tellAgain();
     if (!clipFile) { wantCapture = true; pickFile(); return; }
+    // the comment's place, taken at the press itself
+    let anchor = null; try { anchor = await cap?.comments?.anchorFor($('capBtn')); } catch {}
     // every press leaves a trace Claude can read (studio/send), so a send that fails in some view can be diagnosed
     const trace = (step, extra = {}) => { try { cap?.db?.doc('studio/send').set({ step, name: clipFile?.name ?? null, size: clipFile?.size ?? null, can, at: Date.now(), ...extra }).catch(() => {}); } catch {} };
     if (!(cap?.assets && cap?.db)) { trace('no-capability'); capNote(`This view cannot send clips to Claude (storage ${can.db ? '✓' : '✗'}, uploads ${can.assets ? '✓' : '✗'}).`); return; }
@@ -454,6 +475,12 @@ onmessage = (e) => {
       await limit(cap.db.doc('studio/state').set(state), 15000, 'saving the progress');
       trace('sent', { capture: id });
       capNote('');
+      // then tell Claude, so nobody has to type in the chat
+      const why = await tellClaude(anchor, id, clipFile.name);
+      trace(why ? 'not-told' : 'told', { capture: id, why });
+      if (!why) { state = { ...state, told: true }; await cap.db.doc('studio/state').update({ told: true }).catch(() => {}); }
+      else if (/no Claude session|cannot message|editors|off here/.test(why)) capNote(`Claude couldn't be told from here (${why}): say "capture" in the chat.`);
+      else tellLabel = 'Tell Claude ▸';
     } catch (err) {
       trace('failed', { error: String(err?.code ?? err?.message ?? err) });
       $('capBtn').disabled = false; capNote(`The clip was not sent: ${err?.code ?? err?.message ?? 'error'}.`); return;
@@ -510,10 +537,10 @@ onmessage = (e) => {
   async function captureInit() {
     if (STUDIO) { $('studioBar').hidden = false; showState(); }
     if (window.claude?.use) {
-      const [db, assets, downloads] = await Promise.all(['db', 'assets', 'downloads'].map((n) => window.claude.use(n)));
-      can = { db: !!db, assets: !!assets, downloads: !!downloads };
+      const [db, assets, downloads, comments] = await Promise.all(['db', 'assets', 'downloads', 'comments'].map((n) => window.claude.use(n)));
+      can = { db: !!db, assets: !!assets, downloads: !!downloads, tell: !!comments?.sendToClaude };
       if (CAPTURE && db) {
-        cap = { db, assets };
+        cap = { db, assets, comments };
         db.doc('studio/state').onSnapshot((snap) => { state = snap.data() ?? { status: 'idle' }; showState(); }, () => {});
       }
     }
@@ -541,11 +568,19 @@ onmessage = (e) => {
     $('empty').hidden = false; note('Stopped: playback and rendering halted, both panels cleared.'); layout();
   }
   $('stopBtn').onclick = () => fullStop();
+  async function tellAgain() {
+    $('capBtn').disabled = true;
+    const why = await tellClaude(null, state.capture, state.clip);
+    if (!why) { tellLabel = null; state = { ...state, told: true }; await cap.db.doc('studio/state').update({ told: true }).catch(() => {}); capNote(''); }
+    else { tellLabel = null; capNote(`Claude couldn't be told from here (${why}): say "capture" in the chat.`); }
+    showState();
+  }
   $('stopBar').onclick = () => fullStop();
   $('capBtn').onclick = () => startCapture();
   $('resetBtn').onclick = () => resetStudio();
   captureInit();
-  if (AS_WINDOW) asWindow(); else if (STUDIO) showEmpty(); else loadScene(RAW, STUDIO?.original ?? null);
+  // the studio opens on its last capture, playing beside the original; a fresh install (the example) opens empty
+  if (AS_WINDOW) asWindow(); else if (STUDIO?.example) showEmpty(); else loadScene(RAW, STUDIO?.original ?? null);
   if (!ticking) { ticking = true; win.requestAnimationFrame(tick); }
 
   // ---------- results: preview and save ----------
