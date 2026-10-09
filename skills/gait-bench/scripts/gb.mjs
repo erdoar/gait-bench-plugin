@@ -21,7 +21,7 @@ import { poseReport } from './lib/posefit.mjs';
 import { SHOE_SHAPES, shapeModel, shapeName } from './lib/shoeshapes.mjs';
 import { surfaceMu, frictionDemand, carefulGait } from './lib/physics.mjs';
 
-export const VERSION = '1.8.1';
+export const VERSION = '1.8.2';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const round = (x, k = 2) => Math.round(x * 10 ** k) / 10 ** k;
 const die = (msg) => { console.error(`gb: ${msg}`); process.exit(1); };

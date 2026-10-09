@@ -33,8 +33,8 @@ You can also just attach a video in the chat and ask: "Recreate this walk in 3D"
 - **Cap ↔ Sim:** how far the motion follows your footage (cap) or the walking physics (sim). Sim gives shorter, more careful steps and slips on slippery ground.
 - **Video camera / Orbit:** in Orbit, drag to turn around the scene and scroll to zoom.
 - **⛶** fills the screen; **⧉ Pop out** opens the player in its own window for a second monitor.
-- **Stop** halts playback and rendering at once and empties both panels; use it if the panel jams. **Reset** clears the clip and the progress.
-- **Results:** save the scene file, the result page (works offline) and the videos. **Earlier captures** are listed below, each with **Show in player**; **Delete all** removes them after a confirm.
+- **Stop** halts playback and rendering at once and empties both panels; use it if the panel jams. **Reset** clears the clip and the progress, including a capture left unfinished (the progress bar says when one has stalled); while Claude is still working, press it twice to cancel.
+- **Results:** save the scene file, the result page (works offline) and the videos. **Earlier captures** are listed below, each with **Show in player** and **Delete**; **Delete all** removes them all. Both ask to confirm.
 - **How the scene was reasoned:** each guess with its confidence (weak, moderate, strong) and whether it was seen, inferred or assumed, plus the other readings Claude considered.
 
 ## 4. Ask for changes
