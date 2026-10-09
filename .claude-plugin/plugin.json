@@ -1,6 +1,6 @@
 {
   "name": "gait-bench",
-  "version": "1.8.2",
+  "version": "1.8.3",
   "description": "Rebuild a walking video as a simple 3D scene reasoned out by Claude (ground, sky, sun, scenery, camera move) with a plausible animated figure doing broadly the same thing; renders video beside the original and an interactive page. Claude reasons; small CPU scripts build the walk and draw it.",
   "author": {
     "name": "Nulytica",

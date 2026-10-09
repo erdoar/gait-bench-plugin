@@ -14,7 +14,7 @@ You need Node.js 18 or newer, and ffmpeg with libx264 for video (`brew install f
   (or `/plugin marketplace add https://gait.nulytica.com/marketplace.json`, the same plugin from the website)
 - **Claude desktop app:** download `gait-bench.plugin` from https://gait.nulytica.com and add it as a plugin.
 
-To update later: `/plugin marketplace update` (each release is published on GitHub at https://github.com/erdoar/gait-bench-plugin). The studio shows its version in small type at the bottom, with **Check for updates**.
+To update later: `/plugin marketplace update` (each release is published on GitHub at https://github.com/erdoar/gait-bench-plugin). The studio shows its version in small type at the bottom, with **Check for updates**: when a newer version is out it gives the update command with a **Copy** button, and a link to the releases for the desktop app.
 
 ## 2. Make a capture
 

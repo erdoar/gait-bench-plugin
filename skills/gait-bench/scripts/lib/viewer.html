@@ -46,6 +46,8 @@ button.on { background: var(--accent); color: #fff; border-color: var(--accent);
 .ver { color: var(--muted); font-size: 11px; margin: 14px 2px 0; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
 .ver button { font-size: 11px; padding: 0; border: 0; background: none; color: var(--accent); text-decoration: underline; cursor: pointer; }
 .ver a { color: var(--accent); }
+.ver code { font-size: 11px; background: var(--chip); padding: 0 4px; border-radius: 4px; user-select: all; }
+#verMsg button { font-size: 11px; padding: 0 6px; margin: 0 2px; }
 .note.warn { color: #c0392b; }
 details { margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
 summary { cursor: pointer; font-weight: 600; font-size: 13px; }
@@ -840,20 +842,40 @@ onmessage = (e) => {
   const SITE = 'https://gait.nulytica.com', RELEASES = 'https://github.com/erdoar/gait-bench-plugin';
   const newer = (a, b) => { const p = (v) => String(v).split('.').map((x) => parseInt(x, 10) || 0); const [x, y] = [p(a), p(b)]; for (let k = 0; k < 3; k++) if ((x[k] ?? 0) !== (y[k] ?? 0)) return (x[k] ?? 0) > (y[k] ?? 0); return false; };
   $('verNum').textContent = GB_VERSION;
-  $('verCheck').onclick = async () => {
-    // every answer carries a link to the releases, so there is always somewhere to go from here
-    const msg = $('verMsg'), say = (text, link) => { msg.replaceChildren(text); if (link) { const a = document.createElement('a'); a.href = RELEASES; a.target = '_blank'; a.rel = 'noopener'; a.textContent = link; msg.append(' ', a); } };
-    say('Checking…');
+  // how to update, always shown with the answer: the command for Claude Code, and the releases for the desktop app
+  const UPDATE_CMD = '/plugin marketplace update';
+  function howTo(msg) {
+    const code = document.createElement('code'), copy = document.createElement('button'), a = document.createElement('a');
+    code.textContent = UPDATE_CMD; copy.type = 'button'; copy.textContent = 'Copy';
+    copy.onclick = async () => {
+      try { await navigator.clipboard.writeText(UPDATE_CMD); copy.textContent = 'Copied'; }
+      catch { const r = document.createRange(); r.selectNodeContents(code); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); copy.textContent = 'Selected: copy it'; }
+      setTimeout(() => { copy.textContent = 'Copy'; }, 2500);
+    };
+    a.href = RELEASES; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'the releases';
+    msg.append(' To update, run ', code, ' ', copy, ' in Claude Code, or get the plugin file from ', a, '.');
+  }
+  // the latest version: the studio's own storage first (Claude writes studio/latest with each release, and a published
+  // page may not reach other sites), then the release repo and the site, for a result page opened as a file
+  async function latestVersion() {
     try {
-      let latest = null;
-      for (const url of ['https://raw.githubusercontent.com/erdoar/gait-bench-plugin/main/.claude-plugin/marketplace.json', `${SITE}/marketplace.json`]) {
-        try { const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 8000); const r = await fetch(url, { cache: 'no-store', signal: ctl.signal }); clearTimeout(timer); latest = (await r.json())?.plugins?.[0]?.version; if (latest) break; } catch {}
-      }
-      if (!latest) throw new Error('no version');
-      if (newer(latest, GB_VERSION)) say(`${latest} is out. In Claude Code run /plugin marketplace update, or get it from`, 'the releases');
-      else if (newer(GB_VERSION, latest)) say(`Up to date: this is newer than the published ${latest}.`, 'Releases');
-      else say(`Up to date (${latest}).`, 'Releases');
-    } catch { say('Could not check from here.', 'See the latest version'); }
+      const db = window.claude?.use ? await window.claude.use('db') : null;
+      const v = db ? (await db.doc('studio/latest').get())?.data?.()?.version : null;
+      if (v) return v;
+    } catch {}
+    for (const url of ['https://raw.githubusercontent.com/erdoar/gait-bench-plugin/main/.claude-plugin/marketplace.json', `${SITE}/marketplace.json`]) {
+      try { const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 8000); const r = await fetch(url, { cache: 'no-store', signal: ctl.signal }); clearTimeout(timer); const v = (await r.json())?.plugins?.[0]?.version; if (v) return v; } catch {}
+    }
+    return null;
+  }
+  $('verCheck').onclick = async () => {
+    const msg = $('verMsg');
+    msg.replaceChildren('Checking…');
+    const latest = await latestVersion();
+    if (!latest) { msg.replaceChildren(`This is ${GB_VERSION}; the latest could not be checked from here.`); howTo(msg); }
+    else if (newer(latest, GB_VERSION)) { msg.replaceChildren(`${latest} is out.`); howTo(msg); }
+    else if (newer(GB_VERSION, latest)) msg.replaceChildren(`Up to date: this is newer than the published ${latest}.`);
+    else msg.replaceChildren(`Up to date (${latest}).`);
   };
 })();
 </script>
