@@ -1,14 +1,12 @@
-// scene.mjs — the scene Claude reasons out from the footage (gaitbench.scene.v1): defaults, checks, paths and the camera.
+// scene.mjs — the scene Claude reasons out from the footage (gaitbench.scene.v2): defaults, checks, paths and the camera.
+// Claude decides everything in it; this only fills gaps with stated defaults and refuses what can't be drawn.
 // Pure JavaScript with no Node APIs, so the viewer page can inline it.
 // World: metres, y up, the ground at y = 0. At t = 0 the camera stands at x = 0, z = 0 looking along +z, and +x is to its right.
 // Azimuths are degrees clockwise from +z (90 = the camera's starting right).
 
 import { terrainOf, terrainProblems } from './terrain.mjs';
-import { fillShoe } from './shoeshapes.mjs';
-import { physicsProblems } from './physics.mjs';
-import { worldProblems } from './world.mjs';
 
-export const SCENE_SCHEMA = 'gaitbench.scene.v1';
+export const SCENE_SCHEMA = 'gaitbench.scene.v2';
 
 const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
 const RAD = Math.PI / 180;
@@ -36,33 +34,12 @@ export function rgb(c, fallback = [128, 128, 128]) {
 
 /** Phone lenses by their field of view across the frame's long side. */
 export const LENSES = { main: 67, ultrawide: 106, '2x': 38, '3x': 26, '5x': 16 };
-export const ACTIVITIES = ['walk', 'stand'];
-export const STYLES = { normal: 1, catwalk: 1, careful: 1 };
-export const POSE_JOINTS = ['head', 'neck', 'shoulder_l', 'shoulder_r', 'elbow_l', 'elbow_r', 'hand_l', 'hand_r', 'hip_l', 'hip_r', 'knee_l', 'knee_r', 'ankle_l', 'ankle_r', 'toe_l', 'toe_r'];
-
-/** Problems with a scene's observed_joints, as short sentences. */
-export function poseProblems(raw) {
-  const o = raw?.observed_joints;
-  if (o == null) return [];
-  if (!Array.isArray(o)) return ['observed_joints must be a list of {t, joints: {name: [x, y]}} on the 0–1000 grid'];
-  for (const e of o) {
-    if (!isNum(e?.t) || !e.joints || typeof e.joints !== 'object') return ['each observed_joints entry needs t and joints: {name: [x, y]}'];
-    for (const [k, p] of Object.entries(e.joints)) {
-      if (!POSE_JOINTS.includes(k)) return [`observed_joints names are ${POSE_JOINTS.join(', ')} (the person's own left and right): not "${k}"`];
-      if (!(Array.isArray(p) && isNum(p[0]) && isNum(p[1]))) return [`observed joint ${k} at ${e.t} s must be [x, y]`];
-    }
-  }
-  return [];
-}
-
-
-export const ARM_POSES = ['swing', 'hang', 'bag', 'hip', 'hair', 'phone', 'balance', 'catch'];
 export const FAR_KINDS = ['trees', 'bare_trees', 'buildings', 'hills', 'bank', 'wall'];
 export const PROP_KINDS = ['pole', 'lamp', 'tree', 'bare_tree', 'box'];
 /** How sure Claude is of a section, and what it rests on: categorical, never a number (nothing here is calibrated). */
 export const CONFIDENCE = ['unknown', 'weak', 'moderate', 'strong'];
 export const BASIS = ['seen', 'inferred', 'assumed'];
-export const SECTIONS = ['camera', 'figure', 'activity', 'ground', 'terrain', 'sky', 'sun'];
+export const SECTIONS = ['action', 'camera', 'figure', 'ground', 'terrain', 'sky', 'sun'];
 /** How the scene is drawn: as reasoned, as neutral clay, or clay with the contacts picked out (references for video models). */
 export const LOOKS = ['scene', 'clay', 'contact'];
 
@@ -72,10 +49,9 @@ const DEFAULTS = {
   sun: { azimuth_deg: 160, elevation_deg: 35 },
   figure: {
     stature_m: 1.7, build: 'average', hair: 'short',
-    footwear: { heel_cm: 2.5, platform_cm: 1 },
+    footwear: { model: 'casual-trainer' },
     colours: { skin: '#d9b08c', hair: '#2a2018', top: '#6a7f99', bottom: '#2d3440', shoes: '#222222', bag: '#3a1e1e' },
   },
-  activity: { kind: 'walk', speed_mps: 1.2, cadence_spm: 108, step_width_m: 0.08, style: 'normal', arm_swing: 1, start_foot: 'right', arms: { left: 'swing', right: 'swing' }, gestures: [] },
   camera: { lens: 'main', height_m: 1.4, aim: 'figure', aim_offset: [0, 0], lag_s: 0.25, shake: 0.3 },
 };
 
@@ -94,30 +70,19 @@ const merge = (base, over) => {
 export function normaliseScene(raw) {
   const problems = [], notes = [];
   if (!raw || typeof raw !== 'object') return { scene: null, problems: ['the scene is not a JSON object'], notes };
-  if (raw.schema && raw.schema !== SCENE_SCHEMA) problems.push(`schema is "${raw.schema}", expected "${SCENE_SCHEMA}"`);
+  if (raw.schema === 'gaitbench.scene.v1' || raw.activity) problems.push('this is a 1.x scene: 2.0 has no activity section. Write what the person does as poses (references/scene.md)');
+  else if (raw.schema && raw.schema !== SCENE_SCHEMA) problems.push(`schema is "${raw.schema}", expected "${SCENE_SCHEMA}"`);
   const s = { schema: SCENE_SCHEMA, id: raw.id ?? 'scene', source: raw.source ?? null };
-  // a named shoe shape fills in its typical heel, platform and shaft before the plain shoe's defaults would
-  const rawFw = raw.figure?.footwear && typeof raw.figure.footwear === 'object' ? { ...raw.figure.footwear } : null;
-  if (rawFw) problems.push(...fillShoe(rawFw));
-  problems.push(...physicsProblems(raw));
-  problems.push(...worldProblems(raw));
-  problems.push(...poseProblems(raw));
+  if (raw.figure?.footwear?.style) problems.push('figure.footwear.style was removed in 2.0: name a real shoe in figure.footwear.model (gb.mjs shoes lists them)');
   if (raw.sun?.strength != null && !(isNum(raw.sun.strength) && raw.sun.strength >= 0 && raw.sun.strength <= 1)) problems.push('sun.strength must be 0–1 (0.2–0.3 under full cloud)');
-  for (const k of ['ground', 'sky', 'sun', 'figure', 'activity', 'camera']) {
+  for (const k of ['ground', 'sky', 'sun', 'figure', 'camera']) {
     if (raw[k] == null && k !== 'sky' && k !== 'sun') notes.push(`no ${k} given: defaults used`);
-    s[k] = merge(DEFAULTS[k], k === 'figure' && rawFw ? { ...raw.figure, footwear: rawFw } : raw[k] ?? {});
+    s[k] = merge(DEFAULTS[k], raw[k] ?? {});
   }
+  // what the person does, in words: the poses below are the same thing as numbers
+  s.action = raw.action && typeof raw.action === 'object' ? raw.action : {};
   s.far = Array.isArray(raw.far) ? raw.far : [];
   s.props = Array.isArray(raw.props) ? raw.props : [];
-  // the solid set round the subject: tree stands as geometry within radius_m, the far bands a ring beyond it
-  s.world = raw.world && typeof raw.world === 'object' ? raw.world : null;
-  s.observed = Array.isArray(raw.observed) ? raw.observed : [];
-  // where the ground ends in a few frames, traced on the sheet's grid: check fits the terrain and camera to it
-  s.ground_edges = Array.isArray(raw.ground_edges) ? raw.ground_edges : [];
-  // what is known and must not be fitted (knob names, or their start: "camera" holds them all)
-  // joints marked in key frames (the person's own left and right): check fits the movement to them
-  s.observed_joints = Array.isArray(raw.observed_joints) ? raw.observed_joints : [];
-  s.hold = Array.isArray(raw.hold) ? raw.hold.filter((x) => typeof x === 'string') : [];
   if (s.camera.level) s.camera.roll_deg = 0; // a camera known to be level
   s.terrain = raw.terrain && typeof raw.terrain === 'object' ? raw.terrain : null;
   problems.push(...terrainProblems(s.terrain));
@@ -141,32 +106,15 @@ export function normaliseScene(raw) {
   if (f.bottom_length != null && !['shorts', 'knee', 'full'].includes(f.bottom_length)) problems.push('figure.bottom_length must be shorts, knee or full');
   if (f.top_length != null && !['crop', 'full'].includes(f.top_length)) problems.push('figure.top_length must be crop or full');
   const fw = f.footwear;
-  if (!isNum(fw.heel_cm) || fw.heel_cm < 0 || fw.heel_cm > 25) problems.push('figure.footwear.heel_cm must be 0–25');
-  if (!isNum(fw.platform_cm) || fw.platform_cm < 0 || fw.platform_cm > 12) problems.push('figure.footwear.platform_cm must be 0–12');
+  if (fw.heel_cm != null && (!isNum(fw.heel_cm) || fw.heel_cm < 0 || fw.heel_cm > 25)) problems.push('figure.footwear.heel_cm must be 0–25');
+  if (fw.platform_cm != null && (!isNum(fw.platform_cm) || fw.platform_cm < 0 || fw.platform_cm > 12)) problems.push('figure.footwear.platform_cm must be 0–12');
   if (isNum(fw.heel_cm) && isNum(fw.platform_cm) && fw.platform_cm > fw.heel_cm) problems.push('figure.footwear: the platform cannot be thicker than the heel is high');
+  if (fw.heel_cm == null) fw.heel_cm = 2.5;
+  if (fw.platform_cm == null) fw.platform_cm = Math.min(1, fw.heel_cm);
 
-  const a = s.activity;
-  if (!ACTIVITIES.includes(a.kind)) problems.push(`activity.kind must be one of ${ACTIVITIES.join(', ')}`);
-  if (!STYLES[a.style]) problems.push(`activity.style must be one of ${Object.keys(STYLES).join(', ')}`);
-  if (!Array.isArray(a.path) || !a.path.length || !a.path.every((p) => Array.isArray(p) && isNum(p[0]) && isNum(p[1]))) {
-    if (a.path == null) { a.path = [[0, 4], [0, 4 + a.speed_mps * s.duration_s]]; notes.push('no activity.path: the figure walks straight away from the camera from 4 m'); }
-    else problems.push('activity.path must be a list of [x, z] points in metres');
-  }
-  if (a.kind === 'walk') {
-    if (!isNum(a.speed_mps) || a.speed_mps < 0.2 || a.speed_mps > 2.5) problems.push('activity.speed_mps must be 0.2–2.5 for a walk');
-    if (!isNum(a.cadence_spm) || a.cadence_spm < 30 || a.cadence_spm > 150) problems.push('activity.cadence_spm must be 30–150 steps a minute');
-    if (Array.isArray(a.path) && a.path.length < 2) problems.push('a walk needs at least two path points');
-  }
-  if (a.engine != null && !['kinematic', 'sim'].includes(a.engine)) problems.push('activity.engine must be kinematic or sim');
-  if (a.knee_bend_deg != null && !(isNum(a.knee_bend_deg) && a.knee_bend_deg >= 0 && a.knee_bend_deg <= 45)) problems.push('activity.knee_bend_deg must be 0–45');
-  if (a.arm_raise_deg != null && !(typeof a.arm_raise_deg === 'object' && ['left', 'right'].every((k) => a.arm_raise_deg[k] == null || (isNum(a.arm_raise_deg[k]) && a.arm_raise_deg[k] >= -40 && a.arm_raise_deg[k] <= 70)))) problems.push('activity.arm_raise_deg is {left, right}, each -40–70');
-  if (a.toe_out_deg != null && !(isNum(a.toe_out_deg) && a.toe_out_deg >= -10 && a.toe_out_deg <= 35)) problems.push('activity.toe_out_deg must be -10–35');
-  for (const side of ['left', 'right']) if (!ARM_POSES.includes(a.arms?.[side])) problems.push(`activity.arms.${side} must be one of ${ARM_POSES.join(', ')}`);
-  for (const g of a.gestures ?? []) {
-    if (!isNum(g.from_s) || !isNum(g.to_s) || g.to_s <= g.from_s || !['left', 'right'].includes(g.arm) || !ARM_POSES.includes(g.pose)) {
-      problems.push('each activity.gestures entry needs from_s < to_s, arm (left/right) and a pose'); break;
-    }
-  }
+  s.poses = Array.isArray(raw.poses) ? [...raw.poses].sort((p, q) => (p?.t ?? 0) - (q?.t ?? 0)) : [];
+  if (!s.poses.length) notes.push('no poses: the figure stands still 4 m in front of the camera, facing it');
+  problems.push(...posesProblems(s.poses, s.duration_s));
 
   const c = s.camera;
   if (c.hfov_deg == null) {
@@ -195,25 +143,12 @@ export function normaliseScene(raw) {
       problems.push(`each prop needs kind (${PROP_KINDS.join(', ')}) and at: [x, z]`); break;
     }
   }
-  if (raw.ground_edges != null && !(Array.isArray(raw.ground_edges) && raw.ground_edges.every((e) => isNum(e?.t) && Array.isArray(e.line) && e.line.length >= 2 && e.line.every((p) => Array.isArray(p) && isNum(p[0]) && isNum(p[1]))))) problems.push('each ground_edges entry needs t and line: two or more [x, y] points on the 0–1000 grid');
-  for (const o of s.observed) {
-    if (!isNum(o.t) || !Array.isArray(o.box) || o.box.length !== 4 || !o.box.every(isNum)) { problems.push('each observed entry needs t and box: [x0, y0, x1, y1] on the 0–1000 grid'); break; }
-    if (o.foot != null && !['left', 'right'].includes(o.foot)) { problems.push('an observed shoe box takes foot: left or right'); break; }
-  }
-
   // evidence: per section, how sure and on what basis (seen in the frames, inferred from what was seen, or assumed)
   for (const k of SECTIONS) {
-    const sec = k === 'terrain' ? s.terrain : s[k];
+    const sec = s[k];
     if (!sec) continue;
     if (sec.confidence != null && !CONFIDENCE.includes(sec.confidence)) problems.push(`${k}.confidence must be one of ${CONFIDENCE.join(', ')}`);
     if (sec.basis != null && !BASIS.includes(sec.basis)) problems.push(`${k}.basis must be one of ${BASIS.join(', ')}`);
-  }
-  // contacts read off the frames: when a foot lands (and lifts), as evidence to hold the walk against
-  s.contacts = Array.isArray(raw.contacts) ? raw.contacts : [];
-  for (const c of s.contacts) {
-    if (!['left', 'right'].includes(c.foot) || !isNum(c.on_s) || (c.off_s != null && !(isNum(c.off_s) && c.off_s > c.on_s)) || (c.kind != null && !['plant', 'slide'].includes(c.kind))) {
-      problems.push('each contacts entry needs foot (left/right) and on_s, optionally off_s (after on_s) and kind (plant/slide)'); break;
-    }
   }
   // what else the footage could mean, where Claude chose between readings
   // what the render cannot show of what was seen, said plainly (it goes into the summary as it is)
@@ -225,6 +160,29 @@ export function normaliseScene(raw) {
   return { scene: s, problems, notes };
 }
 
+const ANGLES = { 'trunk.pitch_deg': [-100, 100], 'trunk.roll_deg': [-90, 90], 'trunk.twist_deg': [-90, 90], 'head.pitch_deg': [-80, 90], 'head.turn_deg': [-90, 90] };
+const LIMB = { raise_deg: [-60, 200], out_deg: [-90, 200], elbow_deg: [0, 160] }, FOOT = { lift_m: [0, 1.5], out_deg: [-90, 90], pitch_deg: [-60, 100] };
+/** Problems with the poses, as short sentences: only what can't be drawn, never a judgement of the movement. */
+export function posesProblems(poses, dur) {
+  const out = [], xz = (v) => Array.isArray(v) && v.length === 2 && isNum(v[0]) && isNum(v[1]);
+  const range = (v, [lo, hi], name, t) => { if (v != null && !(isNum(v) && v >= lo && v <= hi)) out.push(`pose at ${t} s: ${name} must be ${lo}–${hi}`); };
+  for (const p of poses) {
+    if (!p || !isNum(p.t)) { out.push('each pose needs t (seconds into the clip)'); continue; }
+    if (p.t < 0 || p.t > dur + 0.5) out.push(`pose at ${p.t} s is outside the clip (0–${dur} s)`);
+    if (p.at != null && !xz(p.at)) out.push(`pose at ${p.t} s: at must be [x, z] in metres`);
+    if (p.facing_deg != null && !isNum(p.facing_deg)) out.push(`pose at ${p.t} s: facing_deg must be a number`);
+    if (p.pelvis_m !== 'auto') range(p.pelvis_m, [0.05, 1.5], 'pelvis_m (or "auto")', p.t);
+    for (const [k, r] of Object.entries(ANGLES)) { const [a, b] = k.split('.'); range(p[a]?.[b], r, k, p.t); }
+    for (const side of ['left', 'right']) {
+      const f = p.feet?.[side], a = p.arms?.[side], h = p.hands?.[side];
+      if (f) { if (f.at != null && !xz(f.at)) out.push(`pose at ${p.t} s: feet.${side}.at must be [x, z]`); for (const [k, r] of Object.entries(FOOT)) range(f[k], r, `feet.${side}.${k}`, p.t); }
+      if (a) for (const [k, r] of Object.entries(LIMB)) range(a[k], r, `arms.${side}.${k}`, p.t);
+      if (h && h.on != null && !xz(h.on)) out.push(`pose at ${p.t} s: hands.${side}.on must be [x, z]`);
+    }
+  }
+  return out;
+}
+
 /** Neutral clay: the same geometry in greys, so a reference shows form, footing and timing rather than looks. */
 function clay(s) {
   const G = '#9c9b96', F = '#c9c6bf', D = '#77756f';
@@ -234,7 +192,6 @@ function clay(s) {
   s.sun = { ...s.sun, elevation_deg: Math.max(40, s.sun.elevation_deg ?? 40) };
   s.far = s.far.map((b) => ({ ...b, colour: '#b4b4b0' }));
   s.props = s.props.map((p) => ({ ...p, colour: '#a9a8a3' }));
-  if (s.world) s.world = { ...s.world, stands: (s.world.stands ?? []).map((t) => ({ ...t, trunk_colour: '#a9a8a3', crown_colour: '#b9b8b3' })) };
   if (s.terrain) s.terrain = { ...s.terrain, features: (s.terrain.features ?? []).map((f) => ({ ...f, colour: undefined, shine: 0 })), grid: { ...(s.terrain.grid ?? {}), colour: '#ffffff', opacity: Math.min(0.25, s.terrain.grid?.opacity ?? 0.2) } };
   const c = s.figure.colours ?? {};
   s.figure = { ...s.figure, colours: { ...Object.fromEntries(Object.keys(c).map((k) => [k, F])), skin: F, hair: D, top: F, bottom: F, legs: F, shoes: D, sole: D, heel: D, bag: D }, gloss: {}, footwear: { ...s.figure.footwear, colours: 'scene' } };
@@ -324,7 +281,6 @@ function cameraAt(path, t) {
  */
 export function cameraTrack(scene, frames) {
   const c = scene.camera, { width, height, fps } = scene.output;
-  const H = scene.figure.stature_m, aimH = c.aim_height_m ?? 0.55 * H + (scene.figure.footwear.heel_cm + scene.figure.footwear.platform_cm) / 200;
   const raw = frames.map((fr) => cameraAt(c.path, fr.t));
   const win = Math.max(0, Math.round(0.2 * fps));
   const pos = raw.map((_, i) => {
@@ -336,8 +292,15 @@ export function cameraTrack(scene, frames) {
   const f = width / 2 / Math.tan((c.hfov_deg * RAD) / 2);
   const k = c.lag_s > 0 ? 1 - Math.exp(-1 / (fps * c.lag_s)) : 1;
   let target = null;
+  // a fixed view, set by whoever watches (in the studio): the same camera for every frame
+  const fx = c.fixed;
+  if (fx && Array.isArray(fx.eye) && isNum(fx.yaw_deg)) {
+    const hf = isNum(fx.hfov_deg) ? fx.hfov_deg : c.hfov_deg, cam = makeCamera({ eye: fx.eye, yaw: fx.yaw_deg, pitch: fx.pitch_deg ?? 0, roll: 0, hfovDeg: hf, width, height });
+    return frames.map(() => cam);
+  }
   return frames.map((fr, i) => {
-    const w = fr.nodes.waist, Tg = terrainOf(scene), goal = [w[0], aimH + (Tg ? Tg.height(w[0], w[2]) : 0), w[2]];
+    // the operator aims at the body itself, wherever it is (standing, bent over or lying on the ground)
+    const w = fr.nodes.waist, Tg = terrainOf(scene), goal = c.aim_height_m != null ? [w[0], c.aim_height_m + (Tg ? Tg.height(w[0], w[2]) : 0), w[2]] : w;
     target = target ? vec.lerp(target, goal, k) : goal;
     const eye = pos[i];
     let yaw, pitch;

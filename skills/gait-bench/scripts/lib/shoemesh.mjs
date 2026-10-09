@@ -1,5 +1,5 @@
 // Library shoes (walkscene.shoe.v1) for the Gait Bench renderer: decode, zone-scale to the scene's measurements,
-// pose rigidly on the walker's foot (bending at the ball), and rasterise with a z-buffer and supersampling.
+// pose rigidly on the figure's foot (bending at the ball), and rasterise with a z-buffer and supersampling.
 // The geometry comes from real reference photos or licensed models (see the shoe-library skill); nothing here
 // invents shape: zone scaling only stretches the traced heel, platform and toe box to the footage's measurements.
 
@@ -76,7 +76,7 @@ const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], 
 const norm3 = (a) => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
 
 /**
- * World vertices for one foot. The shoe's seat goes on the walker's heelSole and its seat-to-ball line along
+ * World vertices for one foot. The shoe's seat goes on the figure's heelSole and its seat-to-ball line along
  * heelSole-to-platBall; the forefoot bends about the ball contact to follow platBall-to-platToe, unless the platform is
  * thicker than 2.5 cm (a rigid block). Left feet mirror z.
  * right = the figure's right, e.g. hip_r - hip_l.

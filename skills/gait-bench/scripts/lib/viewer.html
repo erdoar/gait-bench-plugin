@@ -47,7 +47,6 @@ button.on { background: var(--accent); color: #fff; border-color: var(--accent);
 .ver button { font-size: 11px; padding: 0; border: 0; background: none; color: var(--accent); text-decoration: underline; cursor: pointer; }
 .ver a { color: var(--accent); }
 .ver code { font-size: 11px; background: var(--chip); padding: 0 4px; border-radius: 4px; user-select: all; }
-#verMsg button { font-size: 11px; padding: 0 6px; margin: 0 2px; }
 .note.warn { color: #c0392b; }
 details { margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
 summary { cursor: pointer; font-weight: 600; font-size: 13px; }
@@ -59,6 +58,7 @@ dl { margin: 4px 0 0; } dt { font-weight: 600; margin-top: 8px; text-transform: 
 .capture h2 { font-size: 13px; margin: 0; }
 .capture p { margin: 0; color: var(--muted); font-size: 13px; max-width: 68ch; }
 .studio { margin: 0 0 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 10px; }
+.studio[hidden] { display: none; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .actions button { font-size: 14px; padding: 7px 14px; }
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
@@ -95,22 +95,6 @@ button:disabled { opacity: .5; cursor: default; }
 .files .ico { flex: none; width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; color: var(--accent); background: var(--chip); }
 .files .ico svg { width: 20px; height: 20px; }
 .files video { flex: 1 1 100%; width: 100%; max-height: 40vh; background: #000; border-radius: 8px; }
-#history { display: grid; gap: 6px; margin-top: 4px; }
-.hh { font-size: 12px; font-weight: 600; color: var(--muted); margin: 6px 0 0; text-transform: uppercase; letter-spacing: .04em; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
-.hh button { text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 400; padding: 1px 8px; }
-.hh .linkish { margin-left: auto; }
-.files li.delone { border-top: 0; padding-top: 0; font-size: 12px; color: #c0392b; gap: 6px; }
-.delone .linkish { font-size: 12px; padding: 1px 8px; }
-#delAsk { text-transform: none; letter-spacing: 0; font-weight: 400; color: #c0392b; display: inline-flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
-#delAsk[hidden] { display: none; }
-.cap { border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; }
-.cap summary { list-style: none; display: flex; align-items: center; gap: 8px; padding: 8px 0; font-weight: 600; font-size: 13px; cursor: pointer; }
-.cap summary::-webkit-details-marker { display: none; }
-.cap summary::before { content: ""; flex: none; width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform .2s ease; margin: 0 4px 0 2px; }
-.cap[open] summary::before { transform: rotate(45deg); }
-.cap summary .when { margin-left: auto; font-weight: 400; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
-.cap .files { padding-bottom: 8px; }
-.cap .showcap { margin: 0 0 6px; }
 .files .what b { display: block; font-size: 13px; }
 .files .what span { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 #resultVid { width: 100%; max-height: 50vh; background: #000; border-radius: 8px; }
@@ -124,7 +108,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 <main>
   <header>
     <h1 id="h1">__TITLE__</h1>
-    <span class="sub" id="sub">A scene reasoned from the video, with a plausible figure acting it out. Nothing is measured.</span>
+    <span class="sub" id="sub">A scene reasoned from the video, the figure posed by Claude from what it saw. Nothing is measured.</span>
   </header>
   <section class="studio" id="studioBar" aria-label="Capture" hidden>
     <div class="actions">
@@ -133,7 +117,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
       <button type="button" id="resetBtn">Reset</button>
     </div>
     <div class="progress" role="status" aria-live="polite">
-      <div class="ptop"><span id="pLabel">Ready. Press Capture, or drop a walking clip on the Original panel.</span><span id="pAge"></span></div>
+      <div class="ptop"><span id="pLabel">Ready. Press Capture, or drop a clip on the Original panel.</span><span id="pAge"></span></div>
       <div class="pbar" aria-hidden="true"><i id="pFill"></i></div>
       <ol class="steps" id="pSteps"></ol>
     </div>
@@ -178,8 +162,8 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
         </select>
         <span class="op" id="opWrap">mix <input id="op" type="range" min="0" max="1" step="0.01" value="0.5" aria-label="Overlay mix"></span>
         <select id="look" aria-label="Look" title="Scene as reasoned; Clay in neutral greys; Contact marks planted (blue) and sliding (orange) soles"><option value="scene">Scene</option><option value="clay">Clay</option><option value="contact">Contact</option></select>
-        <span class="op show" title="Cap: the walk as reasoned from the clip. Sim: the ice-walk physics shortens the steps on slippery ground and adds the skids the ground could not prevent">cap <input id="mix" type="range" min="0" max="1" step="0.25" value="0" aria-label="Cap to sim mix"> sim</span>
-        <select id="view" aria-label="Camera"><option value="camera">Video camera</option><option value="orbit">Orbit</option></select>
+        <select id="view" aria-label="Camera"><option value="camera">Your camera</option><option value="orbit">Orbit</option></select>
+        <button id="useView" type="button" title="Keep this orbit view as your camera: playback and every export use it" hidden>📷 Use this view</button>
         <select id="rate" aria-label="Speed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option></select>
         <button id="clip" aria-label="Choose another clip" title="Drop or choose the original clip (C)">Clip…</button>
         <button id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⛶</button>
@@ -192,27 +176,23 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
     <h2 id="resH">Results</h2>
     <ul class="files" id="files"></ul>
     <video id="resultVid" controls playsinline preload="metadata" hidden></video>
-    <div id="history" hidden>
-      <h3 class="hh">Earlier captures <button type="button" id="delAll" class="linkish">Delete all</button> <span id="delAsk" hidden>Delete every earlier capture for good? <button type="button" id="delYes">Delete all</button> <button type="button" id="delNo">Cancel</button></span></h3>
-      <div id="histList"></div>
-    </div>
     <p id="saveNote" hidden></p>
   </section>
   <details id="whyBox">
     <summary>How the scene was reasoned</summary>
     <dl id="why"></dl>
   </details>
-  <p class="ver" id="ver">Gait Bench <span id="verNum"></span> · <button type="button" id="verCheck">Check for updates</button> · <a id="verLink" href="https://github.com/erdoar/gait-bench-plugin" target="_blank" rel="noopener">Releases</a> <span id="verMsg" role="status"></span></p>
+  <p class="ver" id="ver">Gait Bench <span id="verNum"></span> · to update in Claude Code, run <code id="verCmd">/plugin marketplace update</code> <button type="button" id="verCopy">Copy</button> · <a href="https://github.com/erdoar/gait-bench-plugin" target="_blank" rel="noopener">Releases</a></p>
 </main>
 <script type="text/plain" id="gb-core">
 /*MODULES*/
 
 /** The scene, the figure, the camera and the renderer, as one object. Runs in a worker or on the page. */
 function gbEngine(raw) {
-  const { normaliseScene, cameraTrack, makeCamera } = M_scene, { animate } = M_walker, { makeRenderer } = M_draw;
+  const { normaliseScene, cameraTrack, makeCamera } = M_scene, { playPoses } = M_pose, { makeRenderer } = M_draw;
   const { scene, problems } = normaliseScene(raw);
   if (problems.length) return { problems };
-  const motion = animate(scene), cams = cameraTrack(scene, motion.frames), R = makeRenderer(scene, motion.dims);
+  const motion = playPoses(scene), cams = cameraTrack(scene, motion.frames), R = makeRenderer(scene, motion.dims);
   const N = motion.frames.length, fps = scene.output.fps, D2R = Math.PI / 180;
   const why = {}, evidence = {};
   for (const k of M_scene.SECTIONS) {
@@ -220,10 +200,11 @@ function gbEngine(raw) {
     if (sec?.why) why[k] = sec.why;
     if (sec && (sec.confidence || sec.basis)) evidence[k] = { confidence: sec.confidence ?? null, basis: sec.basis ?? null };
   }
-  function render({ t, view, orbit, w, h }) {
+  function render({ t, view, orbit, fixed, w, h }) {
     const i = Math.max(0, Math.min(N - 1, Math.round(t * fps))), c = cams[i];
     let cam;
-    if (view === 'orbit') {
+    if (view === 'fixed' && fixed) cam = makeCamera({ eye: fixed.eye, yaw: fixed.yaw_deg, pitch: fixed.pitch_deg ?? 0, roll: 0, hfovDeg: fixed.hfov_deg, width: w, height: h });
+    else if (view === 'orbit') {
       const p = motion.frames[i].nodes.waist, ce = Math.cos(orbit.el * D2R);
       const eye = [p[0] - Math.sin(orbit.az * D2R) * ce * orbit.dist, p[1] + Math.sin(orbit.el * D2R) * orbit.dist, p[2] - Math.cos(orbit.az * D2R) * ce * orbit.dist];
       const hf = h > w ? 2 * Math.atan(Math.tan(20 * D2R) * w / h) / D2R : 40;
@@ -231,9 +212,12 @@ function gbEngine(raw) {
     } else cam = makeCamera({ eye: c.eye, yaw: c.yaw, pitch: c.pitch, roll: c.roll, hfovDeg: scene.camera.hfov_deg, width: w, height: h });
     const buf = new Uint8ClampedArray(w * h * 4);
     R.render(motion.frames[i], cam, buf);
-    return { buf, i, yaw: c.yaw };
+    // the view as a world camera, so the viewer can keep it ("Use this view")
+    const hfov = 2 * Math.atan(w / 2 / cam.f) / D2R;
+    return { buf, i, yaw: c.yaw, cam: { eye: cam.eye.map((x) => Math.round(x * 1000) / 1000), yaw_deg: Math.round(cam.yaw * 100) / 100, pitch_deg: Math.round(cam.pitch * 100) / 100, hfov_deg: Math.round(hfov * 100) / 100 } };
   }
-  return { info: { id: scene.id, N, fps, dur: (N - 1) / fps, width: scene.output.width, height: scene.output.height, why, evidence, alternatives: scene.alternatives, look: scene.look, mix: scene.activity.mix ?? 0 }, render };
+  const glb = () => M_gltf.exportGLB(scene, motion);
+  return { info: { id: scene.id, N, fps, dur: (N - 1) / fps, width: scene.output.width, height: scene.output.height, why, evidence, alternatives: scene.alternatives, look: scene.look }, render, glb };
 }
 </script>
 <script>
@@ -249,18 +233,19 @@ const SELF = `<!doctype html>\n${document.documentElement.outerHTML}`;
   const HASH = new URLSearchParams(location.hash.slice(1)), AS_WINDOW = HASH.has('full'), stage = $('stage');
   const core = $('gb-core').textContent;
   // the stage's elements, kept by reference: after a pop-out they live in the other window's document
-  const E = Object.fromEntries(["play", "time", "clock", "layout", "op", "opWrap", "view", "rate", "fs", "pop", "cellIn", "cellOut", "frameIn", "frameOut", "tagOut", "drop", "file", "clip", "look", "mix"].map((id) => [id, $(id)]));
+  const E = Object.fromEntries(["play", "time", "clock", "layout", "op", "opWrap", "view", "rate", "fs", "pop", "cellIn", "cellOut", "frameIn", "frameOut", "tagOut", "drop", "file", "clip", "look", "useView"].map((id) => [id, $(id)]));
   const note = (msg, warn) => { $('note').textContent = msg; $('note').className = warn ? 'note warn' : 'note'; };
 
   // ---------- the engine: in a worker when the page may start one, else on the page ----------
-  let engine = null, worker = null, info = null, pending = null, inFlight = false, gbEngineFactory = null;
+  let engine = null, worker = null, info = null, pending = null, inFlight = false, gbEngineFactory = null, glbWait = null;
   const GLUE = `
 let E = null;
 onmessage = (e) => {
   const m = e.data;
   if (m.type === 'init') { E = gbEngine(m.raw); postMessage({ type: 'ready', info: E.info, problems: E.problems }); return; }
+  if (m.type === 'glb') { const b = E.glb(); postMessage({ type: 'glb', buf: b.buffer }, [b.buffer]); return; }
   const t0 = performance.now(), r = E.render(m);
-  postMessage({ type: 'frame', id: m.id, w: m.w, h: m.h, buf: r.buf.buffer, yaw: r.yaw, ms: performance.now() - t0 }, [r.buf.buffer]);
+  postMessage({ type: m.type === 'xframe' ? 'xframe' : 'frame', id: m.id, view: m.view, w: m.w, h: m.h, buf: r.buf.buffer, yaw: r.yaw, cam: r.cam, ms: performance.now() - t0 }, [r.buf.buffer]);
 };`;
   let current = { raw: RAW, original: null }; // what the reconstruction panel shows, once it shows anything
   function startPageEngine(raw = current.raw) {
@@ -279,6 +264,7 @@ onmessage = (e) => {
         if (mine !== gen) return; // a stopped worker's last words
         const m = e.data;
         if (m.type === 'ready') { if (m.problems) return fail(m.problems); ready(m.info); return; }
+        if (m.type === 'glb') { glbWait?.(new Uint8Array(m.buf)); glbWait = null; return; }
         show(m);
       };
       w.onerror = () => { if (mine !== gen) return; worker = null; if (!info && current.loading) startPageEngine(); };
@@ -290,15 +276,14 @@ onmessage = (e) => {
   function loadScene(raw, original, keepT = null) {
     current = { raw, original, loading: true, keepT };
     info = null; inFlight = false; pending = null; $('why').replaceChildren(); $('empty').hidden = true;
-    if (STUDIO) $('h1').textContent = STUDIO.example && raw === RAW ? 'Example: a walk in a park' : nice(raw.id);
+    if (STUDIO) $('h1').textContent = STUDIO.example && raw === RAW ? 'Example: a slip on ice' : nice(raw.id);
     let r = lookPick ? { ...raw, look: lookPick } : raw; // a look chosen on the page wins over the scene's own
-    if (mixPick != null && raw.activity) r = { ...r, activity: { ...raw.activity, mix: mixPick } }; // and so does the cap/sim mix
     if (worker) worker.postMessage({ type: 'init', raw: r }); else startPageEngine(r);
   }
-  let lookPick = null, mixPick = null, startAt = null; // startAt: where a scene opens (a popped-out copy carries on there)
+  let lookPick = null, startAt = null; // startAt: where a scene opens (a popped-out copy carries on there)
 
   // ---------- state ----------
-  const st = { t: 0, playing: true, rate: 1, layout: 'both', view: 'camera', orbit: { az: 0, el: 10, dist: 4.5 }, op: 0.5, lastYaw: 0 };
+  const st = { t: 0, playing: true, rate: 1, layout: 'both', view: 'camera', orbit: { az: 0, el: 10, dist: 4.5 }, op: 0.5, lastYaw: 0, fixed: RAW?.camera?.fixed ?? null, lastCam: null };
   let win = window, popWin = null, last = performance.now(), dirty = true, idleAt = 0, sharpDone = false, msPerMpx = 120, seq = 0;
   const vid = $('vid'), under = $('vidUnder'), cv = $('cv'), ctx = cv.getContext('2d');
   let hasVideo = false;
@@ -322,7 +307,6 @@ onmessage = (e) => {
   function ready(i) {
     info = i; current.loading = false; st.t = Math.min(i.dur, current.keepT ?? startAt ?? 0); startAt = null; dirty = true;
     E.look.value = i.look ?? 'scene';
-    E.mix.value = String(i.mix ?? 0);
     // each section: what Claude reasoned, how sure it is and on what it rests (seen, inferred or assumed)
     for (const k of new Set([...Object.keys(i.why), ...Object.keys(i.evidence ?? {})])) {
       const dt = document.createElement('dt'), dd = document.createElement('dd'), e = i.evidence?.[k];
@@ -396,11 +380,12 @@ onmessage = (e) => {
   // step in the shared doc studio/state, which every open view follows; Claude then republishes the panel with the
   // result. Without storage (another host, a file on disk) the clip still plays here, and the panel says what it can't do.
   const MAX_SEND = 20 * 1048576;
-  const STEPS = [['sent', 'Clip received'], ['look', 'Looking at the frames'], ['reason', 'Reasoning the scene'], ['check', 'Checking the framing'], ['render', 'Rendering'], ['done', 'Done']];
+  const STEPS = [['sent', 'Clip received'], ['look', 'Looking at the frames'], ['reason', 'Posing the figure'], ['check', 'Comparing with the clip'], ['render', 'Building the result'], ['done', 'Done']];
   let shownDone = null; // which dots were already filled, so only newly finished steps pop (none on first paint)
   let sentFile = null; // the clip last sent: once sent, the panel follows Claude's progress on it
   let cap = null, can = { db: false, assets: false, downloads: false }, state = { status: 'idle' };
-  const capNote = (msg) => { const n = $('capNote'); n.textContent = msg; n.hidden = !msg; };
+  // a note about sending is shown in the progress line too, in red when something stopped it, so it can't be missed
+  const capNote = (msg) => { const n = $('capNote'); n.textContent = msg; n.hidden = !msg; n.classList.toggle('warn', !!msg); if (msg) { $('pLabel').textContent = msg; $('pLabel').style.color = '#c0392b'; } else $('pLabel').style.color = ''; };
   const ago = (ms) => { const s2 = Math.max(0, Math.round((Date.now() - ms) / 1000)); return s2 < 60 ? `${s2} s ago` : s2 < 3600 ? `${Math.round(s2 / 60)} min ago` : `${Math.round(s2 / 3600)} h ago`; };
   function showState() {
     if (!STUDIO) return;
@@ -420,8 +405,8 @@ onmessage = (e) => {
     $('pFill').style.width = `${pct}%`; $('pFill').parentElement.classList.toggle('fail', st2.status === 'failed');
     const clip = st2.clip ? ` ${st2.clip}:` : '';
     $('pLabel').textContent = {
-      idle: 'Ready. Press Capture to choose a walking clip, or drop one on the Original panel.',
-      loaded: `${clipFile?.name} is playing here, on this device only. Press Capture to send it to Claude.`,
+      idle: 'Ready. Press Capture to choose a clip, or drop one on the Original panel.',
+      loaded: `${clipFile?.name} is playing here, on this device only. Press Send to Claude to capture it.`,
       queued: `Sent${clip ? ` (${st2.clip})` : ''}. Now say "capture" in the chat, and Claude starts.`,
       working: `Working on${clip} ${STEPS[Math.max(0, idx)]?.[1]?.toLowerCase() ?? 'it'}${st2.note ? `. ${st2.note}` : ''}…`,
       done: `Done${clip ? ` (${st2.clip})` : ''}. Press Show on the reconstruction panel to play it beside the original; save files under Results.`,
@@ -431,6 +416,8 @@ onmessage = (e) => {
     }[fresh && st2.status === 'idle' ? 'loaded' : st2.status] ?? st2.status;
     $('pAge').textContent = st2.at && st2.status !== 'idle' ? `updated ${ago(st2.at)}` : '';
     $('capBtn').disabled = st2.status === 'queued' || st2.status === 'working';
+    // once a clip is chosen and not yet sent, the one button sends it, and says so
+    $('capBtn').textContent = fresh && !active ? 'Send to Claude ▸' : 'Capture a clip…';
   }
   // a capture with no progress for 10 minutes was abandoned (the chat ended mid-render): it no longer locks the studio
   const STALL_MS = 10 * 60 * 1000;
@@ -444,18 +431,56 @@ onmessage = (e) => {
   }
   async function startCapture() {
     if (!clipFile) { wantCapture = true; pickFile(); return; }
-    if (!(cap?.assets && cap?.db)) { capNote('This view cannot send clips to Claude. Attach the same clip in the chat and say "capture"; it is playing here meanwhile.'); return; }
-    if (clipFile.size > MAX_SEND) { capNote('This clip is over 20 MB, too big to send from here. Trim it, or attach it in the chat.'); return; }
-    $('capBtn').disabled = true; $('pLabel').textContent = `Uploading ${clipFile.name}…`; $('pFill').style.width = '4%';
+    // every press leaves a trace Claude can read (studio/send), so a send that fails in some view can be diagnosed
+    const trace = (step, extra = {}) => { try { cap?.db?.doc('studio/send').set({ step, name: clipFile?.name ?? null, size: clipFile?.size ?? null, can, at: Date.now(), ...extra }).catch(() => {}); } catch {} };
+    if (!(cap?.assets && cap?.db)) { trace('no-capability'); capNote(`This view cannot send clips to Claude (storage ${can.db ? '✓' : '✗'}, uploads ${can.assets ? '✓' : '✗'}).`); return; }
+    capNote(''); $('capBtn').disabled = true;
+    // a clip over the upload limit is shrunk here first: replayed into a smaller video (at most 960 px, sized to fit)
+    let sendFile = clipFile;
+    if (clipFile.size > MAX_SEND) {
+      trace('shrinking');
+      try { sendFile = await shrinkClip(clipFile); trace('shrunk', { shrunk: sendFile.size }); }
+      catch (err) { trace('failed', { error: `shrink: ${err?.message ?? err}` }); $('capBtn').disabled = false; capNote(`This clip is over 20 MB and couldn't be shrunk here (${err?.message ?? 'error'}).`); return; }
+    }
+    $('pLabel').textContent = `Uploading ${sendFile.name} (${Math.round(sendFile.size / 1e5) / 10} MB)…`; $('pFill').style.width = '4%';
+    trace('uploading');
+    const limit = (p, ms, what) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(`${what} did not finish in ${Math.round(ms / 1000)} s`)), ms))]);
     try {
-      const up = await cap.assets.upload(clipFile);
+      const up = await limit(cap.assets.upload(sendFile), 30000 + sendFile.size / 50, 'the upload');
+      trace('uploaded', { asset: up.id });
       const id = `c${Date.now().toString(36)}`, at = Date.now();
-      await cap.db.doc(`captures/${id}`).set({ asset: up.id, name: clipFile.name, size: up.sizeBytes, status: 'queued', at });
+      await limit(cap.db.doc(`captures/${id}`).set({ asset: up.id, name: clipFile.name, size: up.sizeBytes, status: 'queued', at }), 15000, 'saving the capture');
       sentFile = clipFile; state = { status: 'queued', step: 'sent', clip: clipFile.name, capture: id, at };
-      await cap.db.doc('studio/state').set(state);
+      await limit(cap.db.doc('studio/state').set(state), 15000, 'saving the progress');
+      trace('sent', { capture: id });
       capNote('');
-    } catch (err) { capNote(`The clip was not sent (${err?.code ?? err?.message ?? 'error'}). Attach it in the chat instead.`); }
+    } catch (err) {
+      trace('failed', { error: String(err?.code ?? err?.message ?? err) });
+      $('capBtn').disabled = false; capNote(`The clip was not sent: ${err?.code ?? err?.message ?? 'error'}.`); return;
+    }
     showState();
+  }
+  /** A smaller copy of a clip, made by playing it into a canvas and recording that (takes as long as the clip). */
+  function shrinkClip(file) {
+    return new Promise((resolve, reject) => {
+      if (typeof MediaRecorder === 'undefined' || !HTMLCanvasElement.prototype.captureStream) return reject(new Error('this browser cannot re-record video'));
+      const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = URL.createObjectURL(file);
+      v.onerror = () => reject(new Error('the clip could not be played'));
+      v.onloadedmetadata = () => {
+        const k = Math.min(1, 960 / Math.max(v.videoWidth, v.videoHeight)), W = Math.max(2, Math.round(v.videoWidth * k / 2) * 2), H = Math.max(2, Math.round(v.videoHeight * k / 2) * 2);
+        const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+        const dur = v.duration || 30, bps = Math.max(4e5, Math.min(3e6, (0.8 * MAX_SEND * 8) / dur));
+        const type = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'].find((t) => MediaRecorder.isTypeSupported(t));
+        if (!type) return reject(new Error('no video recording format here'));
+        const rec = new MediaRecorder(c.captureStream(30), { mimeType: type, videoBitsPerSecond: bps }), parts = [];
+        rec.ondataavailable = (e) => { if (e.data.size) parts.push(e.data); };
+        rec.onstop = () => { URL.revokeObjectURL(v.src); const b = new Blob(parts, { type: type.split(';')[0] }); if (b.size > MAX_SEND) return reject(new Error('still over 20 MB')); resolve(new File([b], file.name.replace(/\.\w+$/, '') + (type.includes('mp4') ? '.mp4' : '.webm'), { type: b.type })); };
+        const draw = () => { g.drawImage(v, 0, 0, W, H); $('pLabel').textContent = `Shrinking ${file.name} to send it: ${Math.round((100 * v.currentTime) / dur)}%…`; $('pFill').style.width = `${Math.round((4 * v.currentTime) / dur)}%`; if (!v.ended) (v.requestVideoFrameCallback ? v.requestVideoFrameCallback(draw) : requestAnimationFrame(draw)); };
+        v.onended = () => { g.drawImage(v, 0, 0, W, H); setTimeout(() => rec.stop(), 200); };
+        rec.start(1000);
+        v.play().then(draw).catch((e) => { rec.stop(); reject(e); });
+      };
+    });
   }
   function resetLocalClip() {
     if (clipUrl) URL.revokeObjectURL(clipUrl);
@@ -490,7 +515,6 @@ onmessage = (e) => {
       if (CAPTURE && db) {
         cap = { db, assets };
         db.doc('studio/state').onSnapshot((snap) => { state = snap.data() ?? { status: 'idle' }; showState(); }, () => {});
-        if (STUDIO) db.collection('history').orderBy('at', 'desc').limit(30).onSnapshot((snap) => showHistory(snap.docs.map((d) => ({ id: d.id, ...d.data() }))), () => {});
       }
     }
     if (STUDIO) showCan();
@@ -502,6 +526,7 @@ onmessage = (e) => {
    */
   function fullStop() {
     if (worker) { worker.terminate(); worker = null; makeWorker(); } else gen++;
+    if (videoJob) { videoJob.terminate(); videoJob = null; }
     engine = null; info = null; inFlight = false; pending = null; current = { raw: RAW, original: null };
     setPlaying(false);
     if (clipUrl) URL.revokeObjectURL(clipUrl);
@@ -543,6 +568,7 @@ onmessage = (e) => {
   }
   // icons for what each result is: the scene (a 3D cube), the result page (a player window), the video (film)
   const ICON = {
+    model: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2"/><path d="M12 7v7M12 9l-5 3M12 9l5 3M12 14l-3 6M12 14l3 6"/></svg>',
     scene: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.8 20.5 7.5v9L12 21.2 3.5 16.5v-9z"/><path d="M3.5 7.5 12 12.2l8.5-4.7M12 12.2v9"/></svg>',
     page: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="2.8" y="4" width="18.4" height="16" rx="2.2"/><path d="M2.8 8.2h18.4"/><circle cx="5.6" cy="6.1" r=".5" fill="currentColor"/><circle cx="7.6" cy="6.1" r=".5" fill="currentColor"/><path d="m10.2 11.2 4.6 2.8-4.6 2.8z" fill="currentColor"/></svg>',
     clip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="13.5" height="12" rx="2"/><path d="m16 10.5 5.5-3.2v9.4L16 13.5z"/></svg>',
@@ -556,9 +582,50 @@ onmessage = (e) => {
     li.append(ic, w, btn); if (extra) li.append(extra);
     return li;
   }
+  // the 3D file, made by the engine from the scene on show
+  function makeGLB() {
+    if (!info) throw new Error('nothing is shown yet');
+    if (worker) return new Promise((res) => { glbWait = (b) => res(new Blob([b], { type: 'model/gltf-binary' })); worker.postMessage({ type: 'glb' }); });
+    return new Blob([engine.glb()], { type: 'model/gltf-binary' });
+  }
+  // a video from your camera: every frame rendered in a worker of its own, encoded by the browser (VP8) and packed as WebM
+  let videoJob = null;
+  async function makeVideo(look) {
+    if (!info) throw new Error('nothing is shown yet');
+    if (videoJob) throw new Error('a video is already being made');
+    if (typeof VideoEncoder === 'undefined') throw new Error('this browser cannot encode video here; ask Claude to render it (the saved scene carries your camera)');
+    const raw = { ...(current.raw ?? RAW), look }, W = info.width - (info.width % 2), H = info.height - (info.height % 2), fps = info.fps, N = info.N;
+    const { makeWebM } = new Function(`${core}\nreturn M_webm;`)(), mux = makeWebM({ width: W, height: H });
+    let encErr = null;
+    const encoder = new VideoEncoder({ output: (chunk) => { const d = new Uint8Array(chunk.byteLength); chunk.copyTo(d); mux.add(d, chunk.timestamp, chunk.type === 'key'); }, error: (e) => { encErr = e; } });
+    encoder.configure({ codec: 'vp8', width: W, height: H, bitrate: 6e6, framerate: fps });
+    const w = new Worker(URL.createObjectURL(new Blob([core, GLUE], { type: 'text/javascript' })));
+    videoJob = w;
+    const next = (m) => new Promise((res, rej) => { w.onmessage = (e) => res(e.data); w.onerror = (e) => rej(new Error(e.message || 'the renderer stopped')); w.postMessage(m); });
+    try {
+      const r0 = await next({ type: 'init', raw });
+      if (r0.problems) throw new Error(r0.problems.join('; '));
+      const view = st.fixed ? 'fixed' : 'camera', t0 = performance.now();
+      for (let i = 0; i < N; i++) {
+        if (videoJob !== w) throw new Error('stopped');
+        const f = await next({ type: 'xframe', t: i / fps, view, fixed: st.fixed, orbit: st.orbit, w: W, h: H });
+        const vf = new VideoFrame(new Uint8Array(f.buf), { format: 'RGBA', codedWidth: W, codedHeight: H, timestamp: Math.round((i * 1e6) / fps), duration: Math.round(1e6 / fps) });
+        encoder.encode(vf, { keyFrame: i % Math.max(1, Math.round(2 * fps)) === 0 }); vf.close();
+        if (encErr) throw encErr;
+        if (i % 5 === 0) { const left = ((performance.now() - t0) / (i + 1)) * (N - i - 1) / 1000; saveNote(`Rendering the ${look === 'scene' ? 'video' : `${look} reference`}: frame ${i + 1} of ${N}, about ${Math.ceil(left)} s left…`); }
+      }
+      await encoder.flush();
+      saveNote('');
+      return new Blob([mux.done(N / fps)], { type: 'video/webm' });
+    } finally { w.terminate(); videoJob = null; try { encoder.close(); } catch {} }
+  }
   const fetchBlob = (url) => async () => { const r = await fetch(url); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.blob(); };
   const files = [
-    ['scene', 'Scene', `${sceneId}.json: what Claude reasoned out, to edit or render again`, `${sceneId}.json`, () => JSON.stringify(RAW, null, 2)],
+    ['scene', 'Scene', `${sceneId}.json: what Claude reasoned out, with your camera`, `${sceneId}.json`, () => JSON.stringify(current.raw ?? RAW, null, 2)],
+    ['model', '3D file', `${sceneId}.glb: the moving figure and its ground, for Blender or any glTF viewer; set the camera there`, `${sceneId}.glb`, () => makeGLB()],
+    ['video', 'Video from your camera', `${sceneId}.webm: rendered frame by frame from the view you set`, `${sceneId}.webm`, () => makeVideo('scene')],
+    ['video', 'Clay reference', `${sceneId}-clay.webm: the same in neutral clay, for video models`, `${sceneId}-clay.webm`, () => makeVideo('clay')],
+    ['video', 'Contact reference', `${sceneId}-contact.webm: clay with planted soles blue and sliding soles orange`, `${sceneId}-contact.webm`, () => makeVideo('contact')],
     ['page', 'Result page', `${sceneId}.html: this player as a file that works offline`, `${sceneId}.html`, () => SELF],
   ];
   if (STUDIO?.video) {
@@ -569,65 +636,6 @@ onmessage = (e) => {
   // a freshly installed studio (no capture yet) starts empty: no example to show, nothing under Results
   if (STUDIO?.example) { $('files').hidden = true; const p = document.createElement('p'); p.id = 'noResults'; p.textContent = 'Nothing yet. Press Capture to start with your own clip.'; $('files').after(p); }
   else for (const [kind, what, detail, filename, make] of files) $('files').append(fileRow(kind, what, detail, filename, make));
-
-  // earlier captures, kept in the shared history collection: each one folds open to its own scene and video
-  function showHistory(rows) {
-    const list = $('histList'), earlier = rows.filter((r) => r.id !== STUDIO?.capture);
-    const open = new Set([...list.querySelectorAll('details[open]')].map((d) => d.dataset.id));
-    list.replaceChildren(...earlier.map((r) => {
-      const det = document.createElement('details'), sum = document.createElement('summary'), name = document.createElement('span'), when = document.createElement('span'), ul = document.createElement('ul');
-      det.className = 'cap'; det.dataset.id = r.id; det.open = open.has(r.id);
-      name.textContent = r.name ?? r.id; when.className = 'when'; when.textContent = r.at ? new Date(r.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '';
-      sum.append(name, when); ul.className = 'files';
-      const base = String(r.scene_id ?? r.id);
-      if (typeof r.scene === 'string') ul.append(fileRow('scene', 'Scene', `${base}.json${r.clip ? `, from ${r.clip}` : ''}`, `${base}.json`, () => { try { return JSON.stringify(JSON.parse(r.scene), null, 2); } catch { return r.scene; } }));
-      if (typeof r.original === 'string' && /^\/_blob\/[0-9a-f]{32}$/.test(r.original)) {
-        const v = document.createElement('video'); v.controls = true; v.playsInline = true; v.preload = 'none';
-        det.addEventListener('toggle', () => { if (det.open && !v.src) v.src = r.original; });
-        ul.append(fileRow('clip', 'Original clip', r.clip ? String(r.clip) : 'the clip it was captured from', `${base}-original.mp4`, fetchBlob(r.original), v));
-      }
-      if (typeof r.video === 'string' && /^[\w./-]+\.(mp4|webm)$/.test(r.video) && !r.video.includes('..')) {
-        const v = document.createElement('video'); v.controls = true; v.playsInline = true; v.preload = 'none';
-        det.addEventListener('toggle', () => { if (det.open && !v.src) v.src = r.video; });
-        ul.append(fileRow('video', 'Rendered video', `${base}.mp4`, `${base}.mp4`, fetchBlob(r.video), v));
-      }
-      let raw2 = null; try { raw2 = typeof r.scene === 'string' ? JSON.parse(r.scene) : null; } catch {}
-      const del = document.createElement('li'), dBtn = document.createElement('button'), ask = document.createElement('span'), yes = document.createElement('button'), no = document.createElement('button');
-      del.className = 'delone'; dBtn.type = yes.type = no.type = 'button'; dBtn.className = 'linkish'; dBtn.textContent = 'Delete';
-      dBtn.setAttribute('aria-label', `Delete ${r.name ?? r.id}`); yes.textContent = 'Delete'; no.textContent = 'Cancel';
-      ask.hidden = true; ask.append('Delete this capture for good? ', yes, ' ', no);
-      dBtn.onclick = () => { ask.hidden = false; dBtn.hidden = true; }; no.onclick = () => { ask.hidden = true; dBtn.hidden = false; };
-      yes.onclick = async () => { ask.hidden = true; const ok = await deleteCapture(r); if (ok) showHistory(histRows.filter((q) => q.id !== r.id)); else dBtn.hidden = false; saveNote(ok ? `Deleted ${r.name ?? r.id}.` : `${r.name ?? r.id} could not be deleted from this view.`); };
-      del.append(dBtn, ask); ul.append(del);
-      if (raw2) { const b = document.createElement('button'); b.type = 'button'; b.className = 'showcap'; b.textContent = 'Show in player'; b.onclick = () => { if (clipFile) resetLocalClip(); loadScene(raw2, r.original ?? null); stage.scrollIntoView({ behavior: 'smooth', block: 'start' }); }; det.append(sum, b, ul); }
-      else det.append(sum, ul);
-      return det;
-    }));
-    $('history').hidden = !earlier.length;
-    histRows = earlier;
-  }
-  // Delete all: every earlier capture's history entry, and its original clip in the studio's storage, after a confirm.
-  // The capture on show stays; rendered videos published with the page are removed when Claude next republishes it.
-  let histRows = [];
-  const delAsk = (on) => { $('delAsk').hidden = !on; $('delAll').hidden = on; };
-  $('delAll').onclick = () => delAsk(true);
-  $('delNo').onclick = () => delAsk(false);
-  // one capture: its history entry, and its original clip unless the capture on show uses the same one
-  async function deleteCapture(r) {
-    if (!cap?.db) return false;
-    try { await cap.db.doc(`history/${r.id}`).delete(); } catch { return false; }
-    const m = /^\/_blob\/([0-9a-f]{32})$/.exec(String(r.original ?? ''));
-    if (m && cap.assets?.delete && r.original !== STUDIO?.original) { try { await cap.assets.delete(m[1]); } catch {} }
-    return true;
-  }
-  $('delYes').onclick = async () => {
-    delAsk(false);
-    if (!cap?.db) { saveNote('Deleting needs the studio\'s storage, which this view does not have.'); return; }
-    const rows = histRows.slice(); let gone = 0, failed = 0;
-    for (const r of rows) { if (await deleteCapture(r)) gone++; else failed++; }
-    showHistory([]);
-    saveNote(failed ? `Deleted ${gone} earlier capture${gone === 1 ? '' : 's'}; ${failed} could not be deleted from this view.` : `Deleted ${gone} earlier capture${gone === 1 ? '' : 's'}.`);
-  };
 
   // ---------- layout: fit each panel to the clip's shape, in whatever window the stage is in ----------
   function fit(cell, frame, aw, ah) {
@@ -650,6 +658,7 @@ onmessage = (e) => {
     const aw = (panes.clientWidth - 12 - 6 * (shown.length - 1)) / shown.length, ah = panes.clientHeight - 12;
     for (const [c, f] of shown) fit(c, f, aw, ah);
     cv.classList.toggle('orbit', st.view === 'orbit');
+    E.useView.hidden = st.view !== 'orbit';
     dirty = true; sharpDone = false;
   }
 
@@ -663,7 +672,7 @@ onmessage = (e) => {
   }
   function request(sharp) {
     if (!info || E.cellOut.hidden) return;
-    const [w, h] = wantSize(sharp), msg = { type: 'frame', id: ++seq, t: st.t, view: st.view, orbit: { ...st.orbit }, w, h, sharp };
+    const [w, h] = wantSize(sharp), msg = { type: 'frame', id: ++seq, t: st.t, view: st.view === 'camera' && st.fixed ? 'fixed' : st.view, orbit: { ...st.orbit }, fixed: st.fixed, w, h, sharp };
     if (inFlight) { pending = msg; return; }
     send(msg);
   }
@@ -672,7 +681,7 @@ onmessage = (e) => {
     if (worker) { worker.postMessage(msg); return; }
     const t0 = performance.now(), r = engine.render(msg);
     // let the page breathe between frames when there is no worker
-    setTimeout(() => show({ ...msg, buf: r.buf.buffer, yaw: r.yaw, ms: performance.now() - t0 }), 0);
+    setTimeout(() => show({ ...msg, buf: r.buf.buffer, yaw: r.yaw, cam: r.cam, ms: performance.now() - t0 }), 0);
   }
   function show(m) {
     inFlight = false;
@@ -681,7 +690,7 @@ onmessage = (e) => {
     if (!m.sharp && m.w * m.h > 120000) msPerMpx = Math.max(15, Math.min(3000, 0.7 * msPerMpx + 0.3 * (m.ms / ((m.w * m.h) / 1e6))));
     if (cv.width !== m.w || cv.height !== m.h) { cv.width = m.w; cv.height = m.h; }
     ctx.putImageData(new ImageData(new Uint8ClampedArray(m.buf), m.w, m.h), 0, 0);
-    st.lastYaw = m.yaw;
+    st.lastYaw = m.yaw; if (m.view === 'orbit') st.lastCam = m.cam;
     if (pending) { const p = pending; pending = null; send(p); }
   }
 
@@ -708,12 +717,18 @@ onmessage = (e) => {
   }
   const step = (k) => { setPlaying(false); st.t = Math.max(0, Math.min(info.dur, st.t + k / info.fps)); seekVideo(); dirty = true; };
   E.play.onclick = () => setPlaying(!st.playing);
-  E.time.oninput = (e) => { st.t = Number(e.target.value) * info.dur; seekVideo(); dirty = true; };
+  E.time.oninput = (e) => { if (!info) return; st.t = Number(e.target.value) * info.dur; seekVideo(); dirty = true; };
   E.layout.onchange = (e) => { st.layout = e.target.value; if (st.layout === 'overlay' && st.view !== 'camera') { st.view = 'camera'; E.view.value = 'camera'; } if (st.layout === 'overlay' && !hasVideo) note('Overlay needs the original video: drop it into the Original panel, or rebuild the page with it.', true); layout(); };
   E.op.oninput = (e) => { st.op = Number(e.target.value); layout(); };
+  // Use this view: the orbit view becomes your camera, kept with the scene, for playback and every export
+  E.useView.onclick = () => {
+    if (!st.lastCam) return;
+    st.fixed = { ...st.lastCam }; st.view = 'camera'; E.view.value = 'camera';
+    if (current.raw) current.raw = { ...current.raw, camera: { ...(current.raw.camera ?? {}), fixed: st.fixed } };
+    note('Your camera is set: playback, the video exports and the saved scene use it. Orbit again and press Use this view to change it.'); layout();
+  };
   E.view.onchange = (e) => { st.view = e.target.value; if (st.view === 'orbit') { st.orbit.az = st.lastYaw; if (st.layout === 'overlay') { st.layout = 'both'; E.layout.value = 'both'; } } layout(); };
   E.look.onchange = (e) => { lookPick = e.target.value; if (info || current.loading) loadScene(current.raw, current.original, st.t); };
-  E.mix.onchange = (e) => { mixPick = Number(e.target.value); if (info || current.loading) loadScene(current.raw, current.original, st.t); };
   E.rate.onchange = (e) => { st.rate = Number(e.target.value); if (st.playing) playVideo(); };
 
   // ---------- orbit ----------
@@ -771,7 +786,7 @@ onmessage = (e) => {
     pw.document.addEventListener('fullscreenchange', onFs);
   }
   // The copy starts as this page did when it loaded, so it is sent what this one shows now: the scene, the time, the
-  // look and mix, and the original clip itself (a clip picked on this device, or the studio's stored one, which the copy
+  // look, and the original clip itself (a clip picked on this device, or the studio's stored one, which the copy
   // can't reach from its blob: address). It is posted until the copy says it has it.
   function popCopy(pw) {
     try {
@@ -787,7 +802,7 @@ onmessage = (e) => {
     popWin = null;
   }
   async function handOver(pw, nonce, was) {
-    const msg = { type: 'gb-pop', nonce, raw: info || current.loading ? current.raw : null, t: st.t, playing: was, look: lookPick, mix: mixPick, video: clipFile ?? null };
+    const msg = { type: 'gb-pop', nonce, raw: info || current.loading ? current.raw : null, t: st.t, playing: was, look: lookPick, video: clipFile ?? null };
     if (!msg.video && !VIDEO && hasVideo && /^\/_blob\/[0-9a-f]{32}$/.test(current.original ?? '')) { try { msg.video = await fetchBlob(current.original)(); } catch {} }
     let tries = 0;
     const iv = setInterval(() => { if (++tries > 80 || pw.closed) return done(); try { pw.postMessage(msg, '*'); } catch {} }, 250);
@@ -809,7 +824,7 @@ onmessage = (e) => {
       if (m?.type !== 'gb-pop' || m.nonce !== nonce) return;
       try { e.source?.postMessage({ type: 'gb-pop-ack', nonce }, '*'); } catch {}
       if (got) return;
-      got = true; lookPick = m.look ?? null; mixPick = m.mix ?? null; st.playing = !!m.playing; E.play.textContent = st.playing ? '⏸' : '▶';
+      got = true; lookPick = m.look ?? null; st.playing = !!m.playing; E.play.textContent = st.playing ? '⏸' : '▶';
       if (m.video instanceof Blob) { clipFile = m.video; clipUrl = URL.createObjectURL(m.video); setVideo(clipUrl); }
       st.t = Math.max(0, Number(m.t) || 0);
       if (m.raw) { startAt = st.t; loadScene(m.raw, null); }
@@ -838,44 +853,13 @@ onmessage = (e) => {
   window.addEventListener('keydown', onKey);
   window.addEventListener('resize', () => { if (win === window) layout(); });
   window.addEventListener('pagehide', () => { if (popWin && !popWin.closed) popWin.close(); });
-  // ---------- the version, and a check against the one published in the release repo (then the site) ----------
-  const SITE = 'https://gait.nulytica.com', RELEASES = 'https://github.com/erdoar/gait-bench-plugin';
-  const newer = (a, b) => { const p = (v) => String(v).split('.').map((x) => parseInt(x, 10) || 0); const [x, y] = [p(a), p(b)]; for (let k = 0; k < 3; k++) if ((x[k] ?? 0) !== (y[k] ?? 0)) return (x[k] ?? 0) > (y[k] ?? 0); return false; };
+  // ---------- the version, and how to update ----------
   $('verNum').textContent = GB_VERSION;
-  // how to update, always shown with the answer: the command for Claude Code, and the releases for the desktop app
-  const UPDATE_CMD = '/plugin marketplace update';
-  function howTo(msg) {
-    const code = document.createElement('code'), copy = document.createElement('button'), a = document.createElement('a');
-    code.textContent = UPDATE_CMD; copy.type = 'button'; copy.textContent = 'Copy';
-    copy.onclick = async () => {
-      try { await navigator.clipboard.writeText(UPDATE_CMD); copy.textContent = 'Copied'; }
-      catch { const r = document.createRange(); r.selectNodeContents(code); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); copy.textContent = 'Selected: copy it'; }
-      setTimeout(() => { copy.textContent = 'Copy'; }, 2500);
-    };
-    a.href = RELEASES; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'the releases';
-    msg.append(' To update, run ', code, ' ', copy, ' in Claude Code, or get the plugin file from ', a, '.');
-  }
-  // the latest version: the studio's own storage first (Claude writes studio/latest with each release, and a published
-  // page may not reach other sites), then the release repo and the site, for a result page opened as a file
-  async function latestVersion() {
-    try {
-      const db = window.claude?.use ? await window.claude.use('db') : null;
-      const v = db ? (await db.doc('studio/latest').get())?.data?.()?.version : null;
-      if (v) return v;
-    } catch {}
-    for (const url of ['https://raw.githubusercontent.com/erdoar/gait-bench-plugin/main/.claude-plugin/marketplace.json', `${SITE}/marketplace.json`]) {
-      try { const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 8000); const r = await fetch(url, { cache: 'no-store', signal: ctl.signal }); clearTimeout(timer); const v = (await r.json())?.plugins?.[0]?.version; if (v) return v; } catch {}
-    }
-    return null;
-  }
-  $('verCheck').onclick = async () => {
-    const msg = $('verMsg');
-    msg.replaceChildren('Checking…');
-    const latest = await latestVersion();
-    if (!latest) { msg.replaceChildren(`This is ${GB_VERSION}; the latest could not be checked from here.`); howTo(msg); }
-    else if (newer(latest, GB_VERSION)) { msg.replaceChildren(`${latest} is out.`); howTo(msg); }
-    else if (newer(GB_VERSION, latest)) msg.replaceChildren(`Up to date: this is newer than the published ${latest}.`);
-    else msg.replaceChildren(`Up to date (${latest}).`);
+  $('verCopy').onclick = async () => {
+    const b = $('verCopy'), code = $('verCmd');
+    try { await navigator.clipboard.writeText(code.textContent); b.textContent = 'Copied'; }
+    catch { const r = document.createRange(); r.selectNodeContents(code); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); b.textContent = 'Selected: copy it'; }
+    setTimeout(() => { b.textContent = 'Copy'; }, 2500);
   };
 })();
 </script>

@@ -2,9 +2,7 @@
 // Everything is drawn from the scene description; nothing comes from the footage. Pure JavaScript with no Node APIs.
 import { vec, rgb } from './scene.mjs';
 import { terrainOf } from './terrain.mjs';
-import { worldParts, worldCentre, ringHit } from './world.mjs';
 import { prepareShoe, poseShoe, shadeTris, rasterMesh, fillTri2d } from './shoemesh.mjs';
-import { shoeShape, SHOE_SHAPES } from './shoeshapes.mjs';
 
 const RAD = Math.PI / 180;
 const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
@@ -63,7 +61,6 @@ export function makeRenderer(scene, dims) {
   }).sort((p, q) => p.distance_m - q.distance_m);
   const fig = figureLook(scene, dims);
   const TR = terrainOf(scene);
-  const WC = scene.world ? worldCentre(scene) : null;
 
   function skyColour(r) {
     const e = Math.asin(clamp(r[1], -1, 1));
@@ -86,16 +83,15 @@ export function makeRenderer(scene, dims) {
         if (bands.length) {
           const az0 = Math.atan2(r[0], r[2]) / RAD, e = Math.atan2(r[1], hz);
           for (const b of bands) {
-            // with a world, each band is a ring round the world's centre (it stays put when the view orbits); without
-            // one it keeps its distance from the eye, as a backdrop
-            const ring = WC ? ringHit(eye, r[0] / hz, r[2] / hz, WC, b.distance_m) : null, bd = ring ? ring.t : b.distance_m, az = ring ? ring.az : az0;
+            const bd = b.distance_m, az = az0; // a backdrop at its distance from the eye, standing on the terrain there
+            const base = TR ? TR.height(eye[0] + (r[0] / hz) * bd, eye[2] + (r[2] / hz) * bd) : 0;
             if (dG < bd) break; // the ground in front hides this band and every farther one
             const d = (((az - b.from_deg) % 360) + 360) % 360;
             if (d > b.span) continue;
             const x = az * RAD * b.distance_m, fade = b.span >= 360 ? 1 : sstep(0, 2, Math.min(d, b.span - d));
             if (b.kind === 'trees' || b.kind === 'bare_trees') {
               // single trees you can see between: a trunk, a crown, and sky through the twigs of bare ones
-              const y = eye[1] + Math.tan(e) * bd;
+              const y = eye[1] + Math.tan(e) * bd - base;
               if (y > b.height_m || y < 0) continue;
               const al = fade * treeAlpha(b, x, y, b.kind === 'trees');
               if (al <= 0.01) continue;
@@ -105,7 +101,7 @@ export function makeRenderer(scene, dims) {
               continue;
             }
             const prof = bandProfile(b, x) * fade;
-            const top = Math.atan2(b.height_m * prof - eye[1], bd), bot = Math.atan2(-eye[1], bd);
+            const top = Math.atan2(base + b.height_m * prof - eye[1], bd), bot = Math.atan2(base - eye[1], bd);
             if (e > top) continue;
             const hgt = clamp((e - bot) / Math.max(1e-6, top - bot), 0, 1); // 0 at its foot, 1 at its top
             if (b.kind === 'buildings') { const win = (Math.floor(x / 2.2) + Math.floor(hgt * b.height_m / 3)) & 1; c = mul(b.col, (0.88 + 0.2 * hash2(Math.floor(x / (b.width_m ?? 25)), 7)) * (win ? 0.96 : 1.02)); }
@@ -159,15 +155,18 @@ export function makeRenderer(scene, dims) {
     }
   }
 
-  let shadowBuf = null, groundBuf = null;
+  let shadowBuf = null, groundBuf = null, bgKey = null, bgBuf = null, bgGround = null;
   return {
     sun,
     render(frame, cam, buf) {
       const n = cam.width * cam.height;
       if (!shadowBuf || shadowBuf.length !== n) { shadowBuf = new Float32Array(n); groundBuf = new Uint8Array(n); }
-      background(cam, buf, groundBuf);
+      // the sky, ground and scenery depend only on the camera: a camera that stays put draws them once
+      const key = [cam.width, cam.height, ...cam.eye, cam.yaw, cam.pitch, cam.roll, cam.f].join(',');
+      if (bgKey === key && bgBuf.length === buf.length) { buf.set(bgBuf); groundBuf.set(bgGround); }
+      else { background(cam, buf, groundBuf); bgKey = key; bgBuf = Uint8ClampedArray.from(buf); bgGround = Uint8Array.from(groundBuf); }
       const hgt = TR ? TR.height : () => 0;
-      const items = [...fig.parts(frame), ...propParts(scene, hgt), ...worldParts(scene, hgt)];
+      const items = [...fig.parts(frame), ...propParts(scene, hgt)];
       // library shoes: posed once per frame, then shadowed, reflected and drawn in the painter's order like the capsules
       const FWm = scene.figure.footwear, meshP = FWm.mesh ? prepareShoe(FWm.mesh, FWm) : null;
       let zcol = null;
@@ -306,124 +305,6 @@ function capsule2d(W, H, x0, y0, r0, x1, y1, r1, plot) {
 }
 
 // ---------- the figure ----------
-/**
- * A shoe built from capsules, from its shape (lib/shoeshapes.mjs): the upper (closed, open, backless, strappy, thong,
- * band, sock or none), the toe (round, almond, pointed, square, open), the heel (flat, block, stiletto, kitten, cone,
- * wedge, cuban), the sole (thin, normal, chunky, lug, crepe), a shaft up the leg (fitted, loose or slouched) and straps.
- * footwear.amplify (1 = true size; 1.3 suggested) thickens and enlarges the parts that tell the shape apart, so the
- * shoe reads at a glance in small or distant frames; the foot's length and heights never change.
- */
-function shoeParts(F, D, s, sh, n, sd, col, g, cap) {
-  const FW = F.footwear, P = shoeShape(FW), A = FW.amplify ?? 1, a2 = Math.sqrt(A), out = [], sg = g('shoes');
-  const ank = n[`ankle_${sd}`], bl = n[`ball_${sd}`], tq = n[`toe_${sd}`], knee = n[`knee_${sd}`], hip = n[`hip_${sd}`];
-  const L = (a, c, t) => add(a, mul(sub(c, a), t));
-  const fdir = norm(sub(tq, sh.heelSole)), lat = norm(vec.cross(fdir, [0, 1, 0])), upv = norm(sub(ank, sh.heelSole));
-  const plat = Math.max(0, D.plat), rise = D.heel - D.plat, throat = L(ank, bl, 0.6);
-  const push = (A_, B_, rA, rB, c, extra = {}) => out.push(cap(A_, B_, rA, rB, c, extra));
-  const shoe = col.shoes, skin = col.skin, dark = (c, k = 0.7) => c.map((x) => x * k);
-  const sole = P.sole === 'crepe' && !col.soleSet ? [214, 196, 160] : P.sole === 'lug' && !col.soleSet ? dark(col.sole, 0.8) : col.sole;
-  const bare = ['strappy', 'thong', 'band', 'none'].includes(P.upper), bulky = SHOE_SHAPES[P.name].group === 'trainer' || P.fit === 'loose';
-  const k = bulky ? 1.25 : 1;
-  const bar = (c, half, r, colr = shoe, bias = 0.02) => push(add(c, mul(lat, half)), add(c, mul(lat, -half)), r, r, colr, { gloss: sg, bias });
-  // a strap all the way round a limb or the foot: six short capsules, so the back half sorts behind what it wraps
-  const ring = (c, axis, rad, t, colr = shoe) => {
-    const e1 = norm(vec.cross(axis, lat)), e2 = norm(vec.cross(e1, axis)), at = (a) => add(c, add(mul(e1, Math.cos(a) * rad), mul(e2, Math.sin(a) * rad)));
-    for (let i = 0; i < 6; i++) push(at((i * Math.PI) / 3), at(((i + 1) * Math.PI) / 3), t, t, colr, { gloss: sg, bias: 0.004 });
-  };
-  const shinAxis = norm(sub(knee, ank)), legR = (u) => (0.032 + (0.05 * D.build - 0.032) * clamp(u, 0, 1)) * s;
-
-  // the foot itself, where the shoe leaves it bare (or covers it in a sock)
-  if (bare) {
-    push(ank, tq, 0.026 * s, 0.022 * s, skin, { bias: -0.005 });
-    push(sh.heelSole, ank, 0.024 * s, 0.026 * s, skin, { bias: -0.006 });
-    if (rise > 0.02 && P.heel !== 'wedge') push(sh.heelSole, L(bl, sh.platBall, 0.4), 0.007 * A, 0.008 * A, sole, { gloss: sg, bias: 0.008 }); // the insole under the arch
-  } else if (P.upper === 'sock') {
-    push(ank, tq, 0.028 * s, 0.023 * s, shoe, { gloss: sg });
-    push(sh.heelSole, ank, 0.026 * s, 0.028 * s, shoe, { gloss: sg });
-  }
-
-  // the sole: a slab under the forefoot (the platform), carried back under the heel when the heel is low or a wedge
-  const tS = ({ none: 0, thin: 0.005, normal: 0.009, crepe: 0.01, chunky: 0.016, lug: 0.015 }[P.sole] ?? 0.008) * A;
-  if (P.sole !== 'none') {
-    const fb = L(bl, sh.platBall, 0.5), ft = L(tq, sh.platToe, 0.5), r = (plat / 2) * A + tS;
-    for (const q of [-1, 1]) { const o = mul(lat, q * 0.01 * s * a2 * k); push(add(fb, o), add(ft, o), r, r * 0.95, sole, { gloss: sg, bias: 0.012 }); }
-    if (P.sole === 'lug') push(add(sh.platBall, mul(upv, 0.004)), add(sh.platToe, mul(upv, 0.004)), 0.006 * A, 0.005 * A, dark(sole, 0.55), { bias: 0.013 }); // cleated edge
-  }
-  const low = rise <= (P.heel === 'kitten' ? 0.025 : 0.035);
-  const heelTop = P.heel === 'kitten' ? L(sh.heelSole, bl, 0.08) : sh.heelSole;
-  if (P.heel === 'wedge' || (low && P.sole !== 'none')) {
-    // a wedge, or a low heel: one block from the heel to the ball, down to the ground
-    const fb = L(bl, sh.platBall, 0.5), r = 0.012 * s * a2 * k;
-    push(sh.heelSole, fb, r + tS / 2, r + tS / 2, P.heel === 'wedge' ? shoe : sole, { gloss: sg, bias: 0.006 });
-    for (const u of [0.35, 0.7, 1]) push(L(sh.heelSole, sh.heelTip, u), L(fb, sh.platBall, u), r * 1.1 + tS / 2, r + tS / 2, u === 1 ? dark(sole, 0.9) : P.heel === 'wedge' ? shoe : sole, { gloss: sg, bias: 0.006 });
-  } else if (['stiletto', 'kitten', 'cone'].includes(P.heel)) {
-    const clear = !!FW.heel_clear, [r0, r1] = { stiletto: [0.011, 0.005], kitten: [0.012, 0.006], cone: [0.022, 0.007] }[P.heel];
-    push(heelTop, sh.heelTip, r0 * A, r1 * A, clear ? col.heel : shoe, { gloss: clear ? 0.95 : sg, alpha: clear ? 0.65 : 1, noShadow: clear, bias: 0.02 });
-    if (clear) push(add(heelTop, mul(lat, 0.004)), add(sh.heelTip, mul(lat, 0.003)), 0.0028 * A, 0.0018 * A, [250, 252, 255], { alpha: 0.8, bias: 0.021, noShadow: true }); // glint
-    push(sh.heelTip, sh.heelTip, (r1 + 0.001) * A, (r1 + 0.001) * A, shoe, { sphere: true, bias: 0.02 });
-  } else {
-    // block and cuban (stacked, a little tapered and set forward at the ground)
-    const foot = P.heel === 'cuban' ? add(sh.heelTip, mul(fdir, 0.012 * s)) : sh.heelTip;
-    push(sh.heelSole, foot, 0.022 * s * a2, (P.heel === 'cuban' ? 0.016 : 0.02) * s * a2, P.heel === 'block' && P.sole === 'chunky' ? sole : shoe, { gloss: sg });
-  }
-
-  // the upper
-  if (['closed', 'open', 'backless'].includes(P.upper)) {
-    const cupTop = add(sh.heelSole, mul(upv, 0.045 * s)), rearAt = P.upper === 'backless' ? L(sh.heelSole, bl, 0.35) : sh.heelSole;
-    const toeEnd = P.toe === 'open' ? L(throat, tq, 0.7) : tq;
-    if (P.upper !== 'closed') push(ank, throat, 0.026 * s, 0.022 * s, skin, { bias: -0.01 });                   // bare instep
-    if (P.upper === 'backless') push(sh.heelSole, ank, 0.024 * s, 0.026 * s, skin, { bias: -0.006 });            // bare heel
-    push(throat, toeEnd, 0.03 * s * a2 * k, 0.026 * s * a2 * k, shoe, { gloss: sg, bias: 0.015 });                // toe box
-    push(rearAt, bl, 0.017 * s * a2 * k, 0.022 * s * a2 * k, shoe, { gloss: sg, bias: 0.005 });                    // side wall: lower edge
-    const topBack = P.upper === 'backless' ? L(rearAt, throat, 0.2) : cupTop;
-    push(topBack, throat, 0.017 * s * a2 * k, 0.02 * s * a2 * k, shoe, { gloss: sg, bias: 0.006 });                 // side wall: topline
-    push(L(rearAt, topBack, 0.5), L(bl, throat, 0.5), 0.018 * s * a2 * k, 0.022 * s * a2 * k, shoe, { gloss: sg, bias: 0.0055 });
-    if (P.upper !== 'backless') push(sh.heelSole, add(sh.heelSole, mul(upv, 0.05 * s)), 0.022 * s * a2 * k, 0.024 * s * a2 * k, shoe, { gloss: sg, bias: 0.01 }); // heel cup
-    if (P.upper === 'closed') push(throat, ank, 0.03 * s * k, 0.036 * s * k, shoe, { gloss: sg, bias: 0.012 });   // over the instep
-    // the toe's shape
-    const rt = 0.026 * s * a2 * k;
-    if (P.toe === 'round') push(tq, tq, rt, rt, shoe, { gloss: sg, sphere: true, bias: 0.016 });
-    else if (P.toe === 'almond') push(tq, add(L(tq, sh.platToe, 0.2), mul(fdir, 0.014 * s)), rt, rt * 0.7, shoe, { gloss: sg, bias: 0.016 });
-    else if (P.toe === 'pointed') push(tq, add(L(tq, sh.platToe, 0.35), mul(fdir, 0.04 * s * a2)), rt * 0.95, 0.005 * A, shoe, { gloss: sg, bias: 0.016 });
-    else if (P.toe === 'square') { push(tq, add(tq, mul(fdir, 0.012 * s)), rt, rt, shoe, { gloss: sg, bias: 0.016 }); bar(add(tq, mul(fdir, 0.012 * s)), 0.016 * s * k, rt * 0.85, shoe, 0.017); }
-    else if (P.toe === 'open') push(L(toeEnd, tq, 0.6), tq, 0.02 * s, 0.019 * s, skin, { bias: 0.01 });          // peep toe
-  }
-  // laces up the instep, in the heel colour
-  if (P.laces && !bare) {
-    push(L(ank, throat, 0.1), throat, 0.014 * s * k, 0.012 * s * k, col.heel, { bias: 0.024 });
-    for (const u of [0.25, 0.55, 0.85]) bar(add(L(ank, throat, u), mul(upv, 0.012 * s * k)), 0.014 * s * k, 0.0045 * A, col.heel, 0.025);
-  }
-  // straps
-  const straps = new Set(P.straps);
-  if (P.upper === 'thong') { const post = L(ank, tq, 0.82); for (const q of [-1, 1]) push(post, add(L(ank, tq, 0.4), mul(lat, q * 0.03 * s)), 0.006 * A, 0.007 * A, shoe, { gloss: sg, bias: 0.02 }); }
-  if (P.upper === 'band') bar(L(ank, tq, 0.6), 0.032 * s, 0.016 * s * A, shoe, 0.02);
-  if (straps.has('toe')) ring(L(ank, tq, 0.8), fdir, 0.025 * s, 0.006 * A);
-  if (straps.has('instep')) { if (bare) ring(L(ank, bl, 0.45), fdir, 0.029 * s, 0.006 * A); else bar(add(L(ank, bl, 0.45), mul(upv, 0.012 * s)), 0.032 * s * k, 0.007 * A, shoe, 0.022); }
-  if (straps.has('cross')) for (const q of [-1, 1]) push(add(L(ank, tq, 0.3), mul(lat, q * 0.028 * s)), add(L(ank, tq, 0.6), mul(lat, -q * 0.028 * s)), 0.006 * A, 0.006 * A, shoe, { gloss: sg, bias: 0.02 });
-  if (straps.has('ankle')) ring(add(ank, mul(shinAxis, 0.012 * s)), shinAxis, legR(0.06) + 0.003, 0.006 * A);
-  if (straps.has('back')) bar(add(L(sh.heelSole, ank, 0.55), mul(fdir, -0.022 * s)), 0.024 * s, 0.006 * A, shoe, 0.02);
-
-  // a shaft up the leg: a boot, a high-top, or straps up the shin
-  const shaft = (P.shaft_cm ?? 0) / 100;
-  if (shaft > 0.02) {
-    const shin = Math.max(0.1, vec.len(sub(knee, ank))), above = shaft - 0.08;
-    const topShin = L(ank, knee, clamp(above / shin, 0.05, 1)), overKnee = above > shin ? L(knee, hip, Math.min(0.85, (above - shin) / Math.max(0.1, vec.len(sub(hip, knee))))) : null;
-    if (P.upper === 'strappy' || straps.has('shin')) {
-      for (let h = 0.06; h < Math.min(above, shin * 0.95); h += 0.06) ring(L(ank, knee, h / shin), shinAxis, legR(h / shin) + 0.003, 0.005 * A);
-    } else {
-      const [r0, r1] = { fitted: [0.042, 0.052], loose: [0.056, 0.064], slouch: [0.054, 0.06] }[P.fit] ?? [0.042, 0.052];
-      // a shaft sorts just in front of the leg segment it wraps, so the leg never shows through it
-      const onShin = { sortAs: { A: knee, B: ank } }, onThigh = { sortAs: { A: hip, B: knee } };
-      push(ank, topShin, r0 * s * A, r1 * s * A, shoe, { gloss: sg, ...onShin });
-      push(throat, ank, 0.036 * s * A * k, 0.046 * s * A, shoe, { gloss: sg, bias: 0.018 });
-      if (P.fit === 'slouch') for (const u of [0.3, 0.6, 0.9]) { const c = L(ank, topShin, u); push(c, c, r1 * s * A * 1.03, r1 * s * A * 1.03, dark(shoe, 0.94), { sphere: true, gloss: sg, ...onShin }); }
-      if (overKnee) push(knee, overKnee, 0.056 * s * D.build, 0.07 * s * D.build, shoe, { gloss: sg, ...onThigh });
-    }
-  }
-  return out;
-}
-
-// a library shoe (traced from real photos): one mesh item per foot, and the bare instep over the opening of open shoes
 function meshShoeParts(F, s, sh, n, sd, col, cap) {
   const out = [], cat = F.footwear.mesh.category ?? 'pump', ank = n[`ankle_${sd}`];
   // a shoe without the real foot inside gets a capsule instep over its opening
@@ -432,7 +313,7 @@ function meshShoeParts(F, s, sh, n, sd, col, cap) {
   return out;
 }
 
-function figureLook(scene, D) {
+export function figureLook(scene, D) {
   const F = scene.figure, C = F.colours ?? {}, s = D.H / 1.7, b = D.build;
   const col = {
     skin: rgb(C.skin, [217, 176, 140]), hair: rgb(C.hair, [42, 32, 24]), top: rgb(C.top, [106, 127, 153]),
@@ -442,7 +323,7 @@ function figureLook(scene, D) {
   col.heel = rgb(C.heel, [205, 218, 228]); col.sole = rgb(C.sole, col.shoes);
   col.soleSet = C.sole != null;
   const gloss = F.gloss ?? {}, sleeves = F.sleeves ?? 'short';
-  const bagSide = scene.activity.arms?.left === 'bag' ? 'l' : scene.activity.arms?.right === 'bag' ? 'r' : null;
+  const bagSide = F.bag === 'left' ? 'l' : F.bag === 'right' ? 'r' : null; // figure.bag: a bag carried in that hand
   const cap = (A, B, rA, rB, c, extra) => ({ A, B, rA, rB, col: c, ...extra });
   return {
     parts(fr) {
@@ -459,7 +340,6 @@ function figureLook(scene, D) {
         } else P.push(cap(n[`hip_${sd}`], n[`knee_${sd}`], 0.074 * s * b, 0.05 * s * b, col.bottom, { gloss: g('bottom') }));
         P.push(cap(n[`knee_${sd}`], n[`ankle_${sd}`], 0.05 * s * b, 0.032 * s, col.legs, { gloss: g('legs') ?? g('bottom') }));
         if (F.footwear.mesh) P.push(...meshShoeParts(F, s, sh, n, sd, col, cap));
-        else if (shoeShape(F.footwear)) P.push(...shoeParts(F, D, s, sh, n, sd, col, g, cap));
         else {
         P.push(cap(sh.heelSole, n[`ball_${sd}`], 0.034 * s, 0.03 * s, col.shoes, { gloss: g('shoes') }));
         P.push(cap(n[`ball_${sd}`], n[`toe_${sd}`], 0.03 * s, 0.024 * s, col.shoes, { gloss: g('shoes') }));
@@ -515,7 +395,7 @@ function figureLook(scene, D) {
 }
 
 // ---------- props ----------
-function propParts(scene, ground = () => 0) {
+export function propParts(scene, ground = () => 0) {
   const out = [];
   for (const p of scene.props) {
     const start = out.length;

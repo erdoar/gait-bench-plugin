@@ -9,7 +9,7 @@
     {
       "name": "gait-bench",
       "description": "Turn a walking video into 3D stick-figure motion capture (Gait Bench graybox), check it against physics, and render clay/stick/depth reference video for Seedance and other video models.",
-      "version": "1.8.3",
+      "version": "2.0.0",
       "author": {
         "name": "Nulytica"
       },

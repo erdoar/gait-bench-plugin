@@ -64,7 +64,8 @@ export function terrainOf(scene) {
 export function makeTerrain(scene) {
   const T = scene.terrain, g = scene.ground ?? {};
   const feats = (T.features ?? []).filter((f) => TERRAIN_KINDS.includes(f.kind)).map((f) => ({ ...f, col: f.colour ? hex(f.colour, null) : null }));
-  const path = (scene.activity?.path ?? []).map((p) => [p[0], p[1]]);
+  // where the person is: the poses' ground points (the terrain centres on them, and noise stays off the ground they cover)
+  const path = (scene.poses ?? []).filter((p) => Array.isArray(p?.at)).map((p) => [p.at[0], p.at[1]]);
   const centre = T.centre ?? (path.length ? path.reduce((a, p) => [a[0] + p[0] / path.length, a[1] + p[1] / path.length], [0, 0]) : [0, 4]);
   const flatR = T.flat_under_path_m ?? 1.2;
   const noise = T.noise ?? null;
@@ -194,17 +195,4 @@ export function makeTerrain(scene) {
   const normal = (t) => [N[3 * t], N[3 * t + 1], N[3 * t + 2]];
   const stats = { vertices: V.length / 3, triangles: nTri, near_cell_m: near.cell, near_size_m: near.size, far_cell_m: far.cell, extent_m: far.half };
   return { height, material, gridAlpha, gridColour: gcol, raster, normal, stats, centre };
-}
-
-/** Stand the figure on the terrain: every joint is lifted by the ground height under the feet. */
-export function liftOnTerrain(scene, motion) {
-  const T = terrainOf(scene);
-  if (!T) return motion;
-  const lift = (o, h) => { for (const k of Object.keys(o)) { const v = o[k]; if (Array.isArray(v) && v.length === 3 && typeof v[0] === 'number') o[k] = [v[0], v[1] + h, v[2]]; else if (v && typeof v === 'object') lift(v, h); } };
-  for (const fr of motion.frames) {
-    const n = fr.nodes, al = n.ankle_l, ar = n.ankle_r;
-    const h = (T.height(al[0], al[2]) + T.height(ar[0], ar[2])) / 2;
-    if (h) { lift(fr.nodes, h); if (fr.shoe) lift(fr.shoe, h); }
-  }
-  return motion;
 }

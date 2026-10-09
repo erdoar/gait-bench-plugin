@@ -1,36 +1,26 @@
 {
-  "schema": "gaitbench.scene.v1",
-  "id": "park-path",
-  "output": { "width": 960, "height": 540, "fps": 25 },
-  "duration_s": 5,
-  "ground": { "colour": "#8f8a7e", "patches": { "colour": "#6f8a4e", "cover": 0.12, "size_m": 1.2 }, "shine": 0, "surface": "dry", "confidence": "strong", "basis": "seen", "why": "A gravel path through mown grass: grey-beige gravel with clumps of grass at its edges." },
-  "sky": { "zenith": "#9fb3c8", "horizon": "#dfe4e8", "haze_m": 1500, "why": "Bright overcast: pale grey-blue, no sun disc, soft light." },
-  "sun": { "azimuth_deg": 130, "elevation_deg": 45, "why": "High and diffuse behind the cloud; shadows are short and faint." },
-  "far": [
-    { "kind": "trees", "from_deg": -70, "to_deg": 70, "distance_m": 45, "height_m": 12, "colour": "#566e45", "why": "A line of leafy trees across the park." },
-    { "kind": "buildings", "from_deg": -40, "to_deg": 10, "distance_m": 600, "height_m": 30, "width_m": 30, "colour": "#b7b4ae", "why": "Low blocks of flats showing over the trees on the left." }
+  "schema": "gaitbench.scene.v2",
+  "id": "ice-slip-example",
+  "source": {"width": 960, "height": 540, "fps": 25, "duration_s": 5},
+  "action": {"why": "She walks three short steps toward the camera on ice, her right foot slides away behind her at about 2.1 s, she drops into a crouch with her trunk folded forward and catches herself on her right hand, and stays down.", "confidence": "strong", "basis": "seen"},
+  "ground": {"colour": "#cfd8e0", "patches": {"colour": "#e8edf1", "cover": 0.35, "size_m": 0.8}, "shine": 0.3, "surface": "ice", "why": "Glazed ice with patches of snow."},
+  "sky": {"zenith": "#9fb3c8", "horizon": "#dfe5ea", "haze_m": 1500},
+  "sun": {"azimuth_deg": 200, "elevation_deg": 25, "strength": 0.5},
+  "far": [{"kind": "trees", "from_deg": -70, "to_deg": 70, "distance_m": 45, "height_m": 14, "colour": "#3d4a3a"}],
+  "props": [{"kind": "pole", "at": [-2.2, 7.5], "height_m": 2.5}],
+  "figure": {"stature_m": 1.68, "build": "slim", "hair": "long", "sleeves": "long", "footwear": {"model": "stiletto-ankle-bootie", "heel_cm": 9, "platform_cm": 1}, "colours": {"skin": "#e2bfa3", "hair": "#4a3426", "top": "#7a8fa8", "bottom": "#222428", "shoes": "#141414"}, "confidence": "moderate", "basis": "seen", "why": "Slim, long dark hair, a grey-blue jacket and dark leggings, black heeled ankle boots."},
+  "poses": [
+    {"t": 0, "at": [0, 7.0], "facing_deg": 180, "trunk": {"pitch_deg": 6}, "feet": {"left": {"at": [0.1, 6.9]}, "right": {"at": [-0.1, 7.25]}}, "arms": {"left": {"raise_deg": 30, "out_deg": 70, "elbow_deg": 30}, "right": {"raise_deg": 30, "out_deg": 70, "elbow_deg": 30}}},
+    {"t": 0.45, "feet": {"right": {"at": [-0.1, 7.25]}}},
+    {"t": 0.9, "at": [0, 6.75], "feet": {"right": {"at": [-0.1, 6.55]}}},
+    {"t": 1.0, "feet": {"left": {"at": [0.1, 6.9]}}},
+    {"t": 1.5, "at": [0, 6.4], "feet": {"left": {"at": [0.1, 6.2]}}},
+    {"t": 2.0, "at": [0, 6.3], "trunk": {"pitch_deg": 8}, "feet": {"right": {"at": [-0.1, 6.55]}}, "note": "weight on the left foot; the right begins to go"},
+    {"t": 2.5, "at": [0, 6.3], "pelvis_m": 0.72, "trunk": {"pitch_deg": 28, "roll_deg": -10}, "head": {"pitch_deg": 25}, "feet": {"right": {"at": [-0.3, 6.75], "slide": true, "pitch_deg": 20}}, "arms": {"left": {"raise_deg": 55, "out_deg": 85, "elbow_deg": 25}, "right": {"raise_deg": 65, "out_deg": 60, "elbow_deg": 15}}, "note": "the right foot has slid back and out; arms flung out"},
+    {"t": 3.1, "at": [0, 6.25], "pelvis_m": 0.4, "trunk": {"pitch_deg": 72, "roll_deg": -12}, "head": {"pitch_deg": 30}, "feet": {"left": {"at": [0.12, 6.15], "pitch_deg": 20}, "right": {"at": [-0.22, 6.9], "pitch_deg": 70}}, "arms": {"left": {"raise_deg": 40, "out_deg": 70, "elbow_deg": 30}}, "hands": {"right": {"on": [-0.25, 5.8]}}, "note": "low on the right knee, right hand flat on the ice"},
+    {"t": 5.0, "at": [0, 6.25], "pelvis_m": 0.38, "trunk": {"pitch_deg": 66, "roll_deg": -8}, "head": {"pitch_deg": 15}, "hands": {"right": {"on": [-0.25, 5.8]}}, "note": "holding still, steadying herself"}
   ],
-  "props": [
-    { "kind": "lamp", "at": [-3.5, 9], "height_m": 4.5, "why": "A path lamp on the far side." },
-    { "kind": "box", "at": [3.2, 8], "width_m": 1.8, "depth_m": 0.5, "height_m": 0.5, "colour": "#7b5a3c", "why": "A wooden bench." }
-  ],
-  "figure": {
-    "stature_m": 1.78, "confidence": "moderate", "basis": "inferred", "build": "average", "hair": "short", "sleeves": "long",
-    "footwear": { "heel_cm": 3, "platform_cm": 1.5 },
-    "colours": { "skin": "#c99a76", "hair": "#2b211a", "top": "#2f4f7a", "bottom": "#3b3b3e", "shoes": "#e8e8e6" },
-    "why": "A man of average build in a navy long-sleeved top, dark trousers and white trainers."
-  },
-  "activity": {
-    "kind": "walk", "confidence": "moderate", "basis": "seen", "style": "normal", "speed_mps": 1.3, "cadence_spm": 110, "step_width_m": 0.09,
-    "path": [[-4, 6], [0, 6.3], [4, 6]],
-    "arms": { "left": "swing", "right": "swing" },
-    "why": "An easy walk from left to right across the frame, about 6 m from the camera."
-  },
-  "camera": {
-    "lens": "main", "confidence": "moderate", "basis": "inferred", "height_m": 1.5, "path": [{ "t": 0, "at": [0, 0] }], "aim": "figure", "aim_offset": [0, 0.05], "lag_s": 0.4, "shake": 0.1,
-    "why": "A phone held fairly still at chest height, landscape, turning to follow him."
-  },
-  "observed": [{ "t": 2.5, "box": [500, 385, 640, 770] }],
-  "contacts": [{ "foot": "left", "on_s": 1.44, "off_s": 2.12 }, { "foot": "right", "on_s": 2.0, "off_s": 2.64 }, { "foot": "left", "on_s": 2.52 }],
-  "alternatives": [{ "about": "figure", "instead": "about 1.70 m, with the camera nearer", "because": "nothing of known size stands beside him" }]
+  "camera": {"lens": "main", "height_m": 1.5, "path": [{"t": 0, "at": [0, 0]}], "aim": "figure", "aim_offset": [0, 0.05], "lag_s": 0.3, "shake": 0.2, "confidence": "moderate", "basis": "inferred", "why": "Hand-held at eye height, standing still, following her."},
+  "alternatives": [{"about": "action", "instead": "she slides onto her left knee rather than the right", "because": "the knees overlap in the frames around 3 s"}],
+  "differs": []
 }

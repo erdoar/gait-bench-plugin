@@ -1,6 +1,6 @@
 # Gait Bench: user guide
 
-Gait Bench turns a short video of someone walking into a simple 3D scene with a figure doing broadly the same thing. You get a video beside your original, a page you can play and orbit, and the scene file. Claude does the reasoning; small scripts on your computer build and draw it.
+Gait Bench turns a short video of a person into a simple 3D scene with a figure moving as they did: walking, slipping, scrambling, falling. You get a video beside your original, a page you can play and orbit, and the scene file. Claude does the reasoning, posing the body from what it sees and checking its render against your clip; small scripts on your computer only draw it.
 
 ## 1. Install
 
@@ -14,27 +14,26 @@ You need Node.js 18 or newer, and ffmpeg with libx264 for video (`brew install f
   (or `/plugin marketplace add https://gait.nulytica.com/marketplace.json`, the same plugin from the website)
 - **Claude desktop app:** download `gait-bench.plugin` from https://gait.nulytica.com and add it as a plugin.
 
-To update later: `/plugin marketplace update` (each release is published on GitHub at https://github.com/erdoar/gait-bench-plugin). The studio shows its version in small type at the bottom, with **Check for updates**: when a newer version is out it gives the update command with a **Copy** button, and a link to the releases for the desktop app.
+To update later: `/plugin marketplace update` (each release is published on GitHub at https://github.com/erdoar/gait-bench-plugin). The studio shows its version in small type at the bottom, with the update command (**Copy** copies it) and a link to the releases for the desktop app.
 
 ## 2. Make a capture
 
 1. Say **"capture"**, **"mocap"** or **"gait"**. Claude opens the **Gait Bench Studio** panel.
 2. Press **Capture a clip** (or drop a video on the Original panel) and choose your clip. It plays at once, on your device only.
-3. Press **Capture** again to send it. The clip goes to the studio's private storage, nowhere else. A progress bar shows each step: clip received, looking at the frames, reasoning the scene, checking, rendering, done.
+3. Press **Send to Claude ▸** (the same button, relabelled once a clip is chosen). The clip goes to the studio's private storage, nowhere else. A progress bar shows each step: clip received, looking at the frames, posing the figure, comparing with the clip, building the result, done.
 4. The result appears beside your original. Claude also writes a short summary in the chat: its main guesses, how sure it is of each, and what differs from your video.
 
-You can also just attach a video in the chat and ask: "Recreate this walk in 3D".
+You can also just attach a video in the chat and ask: "Recreate this in 3D".
 
 ## 3. Use the result
 
 - **Play bar:** play and pause (Space), step a frame (← →), speed ¼×, ½×, 1×.
 - **Layout:** side by side, overlay (the reconstruction over your clip), reconstruction only, or original only.
 - **Look:** Scene (as reasoned), Clay (neutral greys) or Contact (planted soles blue, sliding soles orange). Clay and Contact make good reference videos for video models such as Seedance.
-- **Cap ↔ Sim:** how far the motion follows your footage (cap) or the walking physics (sim). Sim gives shorter, more careful steps and slips on slippery ground.
-- **Video camera / Orbit:** in Orbit, drag to turn around the scene and scroll to zoom.
+- **Your camera / Orbit:** in Orbit, drag to turn around the scene and scroll to zoom. Press **📷 Use this view** to make that view your camera: playback and every video you save use it.
 - **⛶** fills the screen; **⧉ Pop out** opens the player in its own window for a second monitor.
 - **Stop** halts playback and rendering at once and empties both panels; use it if the panel jams. **Reset** clears the clip and the progress, including a capture left unfinished (the progress bar says when one has stalled); while Claude is still working, press it twice to cancel.
-- **Results:** save the scene file, the result page (works offline) and the videos. **Earlier captures** are listed below, each with **Show in player** and **Delete**; **Delete all** removes them all. Both ask to confirm.
+- **Results:** save, from your camera, the video, a clay reference and a contact reference (WebM; rendered frame by frame in the page, about a minute for 30 s). Also save the 3D file (`.glb`: the moving figure and its ground, for Blender or any glTF viewer, where you choose the camera), the scene file (with your camera) and the result page (works offline).
 - **How the scene was reasoned:** each guess with its confidence (weak, moderate, strong) and whether it was seen, inferred or assumed, plus the other readings Claude considered.
 
 ## 4. Ask for changes
@@ -44,20 +43,20 @@ Say what you want in plain words, for example:
 - "Same scene from further away" or "on a 2× lens"
 - "She's wearing trainers, not boots"
 - "The camera was level", "the ground is wet", "it's packed snow, not ice"
-- "Walking faster" or "she slips at about 4 seconds"
+- "She slips at about 4 seconds", "both hands are on the ground there", "she falls forward onto her front at the end"
 - "Put the original beside it" or "give me the 3D page"
 
-Facts you know (the person's height, the lens, a level or fixed camera, the surface) help most: Claude holds them fixed and fits everything else around them.
+Facts you know (the person's height, the lens, a level or fixed camera) help most. Claude keeps them and works everything else out around them. Corrections to the movement go straight into the poses.
 
 ## 5. Clips that work best
 
-- 5 to 20 seconds, one person, the feet visible for most of it.
+- 5 to 30 seconds, one person, the body and feet visible for most of it.
 - Handheld is fine: a moving camera helps work out the ground.
-- Under 20 MB to send from the studio; trim longer clips, or attach them in the chat.
+- Any size: a clip over 20 MB (the artifact upload limit) is shrunk in the studio before sending, to at most 960 px; that takes about as long as the clip runs.
 
 ## 6. What it is, and isn't
 
-The result is a reasoned reconstruction: the same kind of place, person and movement, framed about the same. It is not a measurement. Height, speed, distance, the lens and the camera's path are Claude's judgements from looking, and the summary says which ones mattered and how sure it is. Hard balancing moments (slips, standing on ice in heels) are approximate.
+The result is a reasoned reconstruction: the same kind of place, person and movement, framed about the same. It is not a measurement. Height, distance, the lens, the camera's path and every pose are Claude's judgements from looking, and the summary says which ones mattered and how sure it is. The figure moves between the moments Claude posed, so fast movements between them are smoothed.
 
 ## 7. Privacy
 
